@@ -291,17 +291,25 @@
             -webkit-user-select: none;
         }
 
-        @media (max-width: 860px) {
-            #unity-header, #unity-footer, #controls-info { display: none; }
-            #unity-container {
-                width: 100vw !important;
-                border-radius: 0;
-            }
-            #gameCanvas {
-                width: 100vw;
-                height: auto;
-            }
+        /* Device-specific visibility (controlled via body class) */
+        body.device-desktop #touch-controls { display: none !important; }
+        body.device-desktop #controls-info { display: block; }
+
+        body.device-mobile #controls-info { display: none !important; }
+        body.device-mobile #touch-controls { display: block; }
+        body.device-mobile #unity-header { display: none; }
+        body.device-mobile #unity-footer { display: none; }
+        body.device-mobile #unity-container {
+            width: 100vw !important;
+            border-radius: 0;
         }
+        body.device-mobile #gameCanvas {
+            width: 100vw;
+            height: auto;
+        }
+
+        body.device-tablet #controls-info { display: none !important; }
+        body.device-tablet #touch-controls { display: block; }
     </style>
 </head>
 <body>
@@ -421,9 +429,47 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; });
 
-// ---- TOUCH INPUT ----
+// ---- DEVICE DETECTION ----
+// Categorizes into: 'mobile', 'tablet', or 'desktop'
+// - mobile:  phone-sized touch device (touch controls shown, keyboard hints hidden)
+// - tablet:  larger touch device like iPad (touch controls shown, keyboard hints hidden)
+// - desktop: laptop/desktop, even with touchscreen (keyboard hints shown, touch hidden)
+
+let deviceType = 'desktop';
 let isTouchDevice = false;
 
+function detectDevice() {
+    const ua = navigator.userAgent || '';
+    const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const screenW = Math.min(screen.width, screen.height); // shortest dimension
+    const isPortraitCapable = screen.width < screen.height || window.matchMedia('(orientation: portrait)').matches;
+
+    // Check for mobile UA strings
+    const mobileUA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const tabletUA = /iPad|Android(?!.*Mobile)/i.test(ua) || (navigator.platform === 'MacIntel' && hasTouch);
+
+    if (mobileUA && !tabletUA) {
+        deviceType = 'mobile';
+    } else if (tabletUA) {
+        deviceType = 'tablet';
+    } else if (hasTouch && screenW <= 1024 && isPortraitCapable) {
+        // Touch device with small screen that can go portrait -> likely tablet/phone
+        deviceType = screenW <= 480 ? 'mobile' : 'tablet';
+    } else {
+        // Desktop (even if it has a touchscreen, like a laptop)
+        deviceType = 'desktop';
+    }
+
+    isTouchDevice = (deviceType === 'mobile' || deviceType === 'tablet');
+
+    // Apply body class for CSS rules
+    document.body.classList.remove('device-desktop', 'device-mobile', 'device-tablet');
+    document.body.classList.add('device-' + deviceType);
+
+    return deviceType;
+}
+
+// ---- TOUCH INPUT ----
 function initTouchControls() {
     const touchOverlay = document.getElementById('touch-controls');
     const allButtons = touchOverlay.querySelectorAll('[data-key]');
@@ -486,17 +532,13 @@ function initTouchControls() {
     });
 }
 
-// Detect touch capability and show controls
-function detectTouch() {
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-        isTouchDevice = true;
-        document.getElementById('touch-controls').classList.add('visible');
-        document.getElementById('controls-info').style.display = 'none';
-    }
-}
-
-detectTouch();
+detectDevice();
 initTouchControls();
+
+// Re-detect on orientation change (tablet rotating may change behavior)
+window.addEventListener('orientationchange', () => {
+    setTimeout(detectDevice, 200);
+});
 
 // ---- LEVEL DATA ----
 // Tile types: 0=air, 1=ground, 2=brick, 3=question, 4=pipe_tl, 5=pipe_tr, 6=pipe_bl, 7=pipe_br, 8=used_block, 9=flag

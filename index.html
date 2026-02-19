@@ -153,26 +153,10 @@
             transform: translateY(0);
         }
 
-        /* Mobile: hide desktop controls, enlarge iframe */
-        @media (max-width: 860px) {
-            header h1 { font-size: 24px; }
-            header p { font-size: 12px; }
-            .controls { display: none; }
-            .info-section { display: none; }
-            #game-frame {
-                width: 100vw;
-                border-radius: 0;
-                border: none;
-                margin: 10px 0;
-            }
-            #game-frame iframe {
-                width: 100vw;
-                height: 56.25vw; /* 16:9-ish */
-                min-height: 300px;
-            }
-            .mobile-hint {
-                display: block !important;
-            }
+        /* Device hint sections - hidden by default, shown via JS body class */
+        .controls-desktop,
+        .controls-touch {
+            display: none;
         }
         .mobile-hint {
             display: none;
@@ -181,6 +165,79 @@
             text-align: center;
             margin: 8px 0;
         }
+        .device-badge {
+            display: inline-block;
+            background: #2d2d44;
+            color: #ccc;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            border: 1px solid #444;
+            margin-bottom: 12px;
+        }
+
+        /* Touch controls reference cards */
+        .touch-ref {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 10px auto;
+        }
+        .touch-ref-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 14px 20px;
+            text-align: center;
+            min-width: 120px;
+        }
+        .touch-ref-card h3 {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .touch-ref-icon {
+            font-size: 28px;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .touch-ref-label {
+            color: #aaa;
+            font-size: 12px;
+        }
+
+        /* Desktop device */
+        body.device-desktop .controls-desktop { display: flex; }
+        body.device-desktop .controls-touch { display: none; }
+        body.device-desktop .mobile-hint { display: none; }
+
+        /* Mobile device */
+        body.device-mobile .controls-desktop { display: none !important; }
+        body.device-mobile .controls-touch { display: flex; }
+        body.device-mobile .mobile-hint { display: block; }
+        body.device-mobile header h1 { font-size: 24px; }
+        body.device-mobile header p { font-size: 12px; }
+        body.device-mobile .info-section { display: none; }
+        body.device-mobile #game-frame {
+            width: 100vw;
+            border-radius: 0;
+            border: none;
+            margin: 10px 0;
+        }
+        body.device-mobile #game-frame iframe {
+            width: 100vw;
+            height: 56.25vw;
+            min-height: 300px;
+        }
+
+        /* Tablet device */
+        body.device-tablet .controls-desktop { display: none !important; }
+        body.device-tablet .controls-touch { display: flex; }
+        body.device-tablet .mobile-hint { display: block; }
+        body.device-tablet .info-section { display: none; }
 
         /* Fullscreen state */
         body.is-fullscreen header,
@@ -220,9 +277,13 @@
     <iframe id="game-iframe" src="WebDemo/index.html" width="800" height="530" allowfullscreen></iframe>
 </div>
 
-<div class="mobile-hint">Touch controls appear automatically on mobile. Tap the game to start!</div>
+<div class="mobile-hint">
+    <span class="device-badge" id="device-badge">Detecting device...</span><br>
+    Touch controls appear on screen. Tap the game area to start!
+</div>
 
-<div class="controls">
+<!-- Desktop: keyboard controls -->
+<div class="controls controls-desktop">
     <div class="control-group">
         <h3>Movement</h3>
         <div class="keys">
@@ -255,6 +316,30 @@
     </div>
 </div>
 
+<!-- Mobile / Tablet: touch controls reference -->
+<div class="touch-ref controls-touch">
+    <div class="touch-ref-card">
+        <h3>D-Pad</h3>
+        <div class="touch-ref-icon">&#9664; &#9654;</div>
+        <div class="touch-ref-label">Move left / right</div>
+    </div>
+    <div class="touch-ref-card">
+        <h3>A Button</h3>
+        <div class="touch-ref-icon" style="color:#e63946;">A</div>
+        <div class="touch-ref-label">Jump</div>
+    </div>
+    <div class="touch-ref-card">
+        <h3>B Button</h3>
+        <div class="touch-ref-icon" style="color:#f8b800;">B</div>
+        <div class="touch-ref-label">Run / Sprint</div>
+    </div>
+    <div class="touch-ref-card">
+        <h3>Start</h3>
+        <div class="touch-ref-icon">&#9654;&#9646;</div>
+        <div class="touch-ref-label">Start / Retry</div>
+    </div>
+</div>
+
 <div class="info-section">
     <div class="info-grid">
         <div class="info-card">
@@ -281,6 +366,48 @@
 </footer>
 
 <script>
+// ---- DEVICE DETECTION (same logic as WebDemo) ----
+function detectDevice() {
+    const ua = navigator.userAgent || '';
+    const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const screenW = Math.min(screen.width, screen.height);
+    const isPortraitCapable = screen.width < screen.height || window.matchMedia('(orientation: portrait)').matches;
+
+    const mobileUA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+    const tabletUA = /iPad|Android(?!.*Mobile)/i.test(ua) || (navigator.platform === 'MacIntel' && hasTouch);
+
+    let type;
+    if (mobileUA && !tabletUA) {
+        type = 'mobile';
+    } else if (tabletUA) {
+        type = 'tablet';
+    } else if (hasTouch && screenW <= 1024 && isPortraitCapable) {
+        type = screenW <= 480 ? 'mobile' : 'tablet';
+    } else {
+        type = 'desktop';
+    }
+
+    document.body.classList.remove('device-desktop', 'device-mobile', 'device-tablet');
+    document.body.classList.add('device-' + type);
+
+    // Update the device badge label
+    const badge = document.getElementById('device-badge');
+    if (badge) {
+        const labels = {
+            desktop: 'Desktop Detected \u2014 Keyboard Controls',
+            mobile:  'Mobile Detected \u2014 Touch Controls',
+            tablet:  'Tablet Detected \u2014 Touch Controls'
+        };
+        badge.textContent = labels[type];
+    }
+
+    return type;
+}
+
+detectDevice();
+window.addEventListener('orientationchange', () => setTimeout(detectDevice, 200));
+
+// ---- FULLSCREEN ----
 function goFullscreen() {
     const el = document.documentElement;
     const req = el.requestFullscreen || el.webkitRequestFullscreen;
@@ -292,7 +419,6 @@ function goFullscreen() {
 function onFSChange() {
     const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
     document.body.classList.toggle('is-fullscreen', fs);
-    // Focus iframe when entering fullscreen so it receives input
     if (fs) {
         setTimeout(() => {
             document.getElementById('game-iframe').focus();
