@@ -128,6 +128,80 @@
             padding: 20px;
             text-align: center;
         }
+        .fullscreen-bar {
+            margin: 0 auto 10px;
+            text-align: center;
+        }
+        .fullscreen-main-btn {
+            background: linear-gradient(135deg, #e63946, #c62828);
+            border: none;
+            color: #fff;
+            padding: 10px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 16px rgba(230,57,70,0.3);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .fullscreen-main-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(230,57,70,0.4);
+        }
+        .fullscreen-main-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Mobile: hide desktop controls, enlarge iframe */
+        @media (max-width: 860px) {
+            header h1 { font-size: 24px; }
+            header p { font-size: 12px; }
+            .controls { display: none; }
+            .info-section { display: none; }
+            #game-frame {
+                width: 100vw;
+                border-radius: 0;
+                border: none;
+                margin: 10px 0;
+            }
+            #game-frame iframe {
+                width: 100vw;
+                height: 56.25vw; /* 16:9-ish */
+                min-height: 300px;
+            }
+            .mobile-hint {
+                display: block !important;
+            }
+        }
+        .mobile-hint {
+            display: none;
+            color: #888;
+            font-size: 12px;
+            text-align: center;
+            margin: 8px 0;
+        }
+
+        /* Fullscreen state */
+        body.is-fullscreen header,
+        body.is-fullscreen .controls,
+        body.is-fullscreen .info-section,
+        body.is-fullscreen footer,
+        body.is-fullscreen .fullscreen-bar,
+        body.is-fullscreen .mobile-hint {
+            display: none !important;
+        }
+        body.is-fullscreen #game-frame {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            border-radius: 0;
+            border: none;
+        }
+        body.is-fullscreen #game-frame iframe {
+            width: 100vw;
+            height: 100vh;
+        }
     </style>
 </head>
 <body>
@@ -138,9 +212,15 @@
     <span class="badge">Unity WebGL Player &bull; HTML5 Canvas</span>
 </header>
 
-<div id="game-frame">
-    <iframe src="WebDemo/index.html" width="800" height="530" allowfullscreen></iframe>
+<div class="fullscreen-bar">
+    <button class="fullscreen-main-btn" onclick="goFullscreen()">PLAY FULLSCREEN</button>
 </div>
+
+<div id="game-frame">
+    <iframe id="game-iframe" src="WebDemo/index.html" width="800" height="530" allowfullscreen></iframe>
+</div>
+
+<div class="mobile-hint">Touch controls appear automatically on mobile. Tap the game to start!</div>
 
 <div class="controls">
     <div class="control-group">
@@ -199,6 +279,30 @@
 <footer>
     Fan Demo - Not affiliated with Nintendo or Unity Technologies
 </footer>
+
+<script>
+function goFullscreen() {
+    const el = document.documentElement;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (req) {
+        req.call(el).catch(() => {});
+    }
+}
+
+function onFSChange() {
+    const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    document.body.classList.toggle('is-fullscreen', fs);
+    // Focus iframe when entering fullscreen so it receives input
+    if (fs) {
+        setTimeout(() => {
+            document.getElementById('game-iframe').focus();
+        }, 100);
+    }
+}
+
+document.addEventListener('fullscreenchange', onFSChange);
+document.addEventListener('webkitfullscreenchange', onFSChange);
+</script>
 
 </body>
 </html>
