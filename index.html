@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Mario Demo - Unity WebGL</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+        }
+        header {
+            text-align: center;
+            padding: 30px 20px 10px;
+        }
+        header h1 {
+            font-size: 36px;
+            font-weight: 900;
+            background: linear-gradient(90deg, #e63946, #f4a261, #e9c46a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        header p {
+            color: #8888aa;
+            font-size: 14px;
+        }
+        .badge {
+            display: inline-block;
+            background: #2d2d44;
+            color: #aaa;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-top: 8px;
+            border: 1px solid #444;
+        }
+        #game-frame {
+            margin: 20px auto;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(230, 57, 70, 0.15), 0 0 20px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+        iframe {
+            display: block;
+            border: none;
+        }
+        .controls {
+            margin: 15px auto;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .control-group {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px 20px;
+            text-align: center;
+        }
+        .control-group h3 {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .keys {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            align-items: center;
+        }
+        kbd {
+            display: inline-block;
+            background: #1a1a2e;
+            border: 1px solid #444;
+            border-bottom: 2px solid #555;
+            color: #ddd;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .keys span {
+            color: #666;
+            font-size: 11px;
+        }
+        .info-section {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 20px 40px;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .info-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .info-card h3 {
+            color: #f4a261;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        .info-card p {
+            color: #888;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        footer {
+            color: #444;
+            font-size: 11px;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>SUPER MARIO DEMO</h1>
+    <p>A classic platformer demo built with Unity engine concepts, running in your browser</p>
+    <span class="badge">Unity WebGL Player &bull; HTML5 Canvas</span>
+</header>
+
+<div id="game-frame">
+    <iframe src="WebDemo/index.html" width="800" height="530" allowfullscreen></iframe>
+</div>
+
+<div class="controls">
+    <div class="control-group">
+        <h3>Movement</h3>
+        <div class="keys">
+            <kbd>&larr;</kbd><kbd>&rarr;</kbd>
+            <span>or</span>
+            <kbd>A</kbd><kbd>D</kbd>
+        </div>
+    </div>
+    <div class="control-group">
+        <h3>Jump</h3>
+        <div class="keys">
+            <kbd>&uarr;</kbd>
+            <span>or</span>
+            <kbd>W</kbd>
+            <span>or</span>
+            <kbd>Space</kbd>
+        </div>
+    </div>
+    <div class="control-group">
+        <h3>Run</h3>
+        <div class="keys">
+            <kbd>Shift</kbd>
+        </div>
+    </div>
+    <div class="control-group">
+        <h3>Start</h3>
+        <div class="keys">
+            <kbd>Enter</kbd>
+        </div>
+    </div>
+</div>
+
+<div class="info-section">
+    <div class="info-grid">
+        <div class="info-card">
+            <h3>Unity Architecture</h3>
+            <p>Full Unity project included with C# scripts: PlayerController, GameManager, EnemyController, LevelGenerator, CameraFollow, and more.</p>
+        </div>
+        <div class="info-card">
+            <h3>WebGL Build</h3>
+            <p>HTML5 Canvas demo mirrors what Unity's WebGL build pipeline produces. Custom WebGL template included in the project.</p>
+        </div>
+        <div class="info-card">
+            <h3>Classic Gameplay</h3>
+            <p>Features classic Mario mechanics: variable-height jumping, enemy stomping, brick breaking, coin collecting, and flagpole finish.</p>
+        </div>
+        <div class="info-card">
+            <h3>Open Source</h3>
+            <p>Open the Unity project in Unity 2021+ to customize, add sprites, audio, and build for any platform including WebGL.</p>
+        </div>
+    </div>
+</div>
+
+<footer>
+    Fan Demo - Not affiliated with Nintendo or Unity Technologies
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 2
+  tags:
+  - Enemy
+  - Block
+  - Coin
+  - Pipe
+  - Flagpole
+  - KillZone
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  -
+  - Water
+  - UI
+  -
+  -
+  - Ground
+  - Enemies
+  - Player
+  - Blocks
+  - Pickups
+  - Background
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  -
+  m_SortingLayers:
+  - name: Background
+    uniqueID: 1
+    locked: 0
+  - name: Decorations
+    uniqueID: 2
+    locked: 0
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: Entities
+    uniqueID: 3
+    locked: 0
+  - name: Player
+    uniqueID: 4
+    locked: 0
+  - name: UI
+    uniqueID: 5
+    locked: 0
