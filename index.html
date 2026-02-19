@@ -210,17 +210,17 @@
         }
 
         /* Desktop device */
-        body.device-desktop .controls-desktop { display: flex; }
-        body.device-desktop .controls-touch { display: none; }
-        body.device-desktop .mobile-hint { display: none; }
+        body.device-desktop .controls-desktop { display: flex !important; }
+        body.device-desktop .controls-touch { display: none !important; }
+        body.device-desktop .mobile-hint { display: none !important; }
 
         /* Mobile device */
         body.device-mobile .controls-desktop { display: none !important; }
-        body.device-mobile .controls-touch { display: flex; }
-        body.device-mobile .mobile-hint { display: block; }
+        body.device-mobile .controls-touch { display: flex !important; }
+        body.device-mobile .mobile-hint { display: block !important; }
         body.device-mobile header h1 { font-size: 24px; }
         body.device-mobile header p { font-size: 12px; }
-        body.device-mobile .info-section { display: none; }
+        body.device-mobile .info-section { display: none !important; }
         body.device-mobile #game-frame {
             width: 100vw;
             border-radius: 0;
@@ -235,13 +235,14 @@
 
         /* Tablet device */
         body.device-tablet .controls-desktop { display: none !important; }
-        body.device-tablet .controls-touch { display: flex; }
-        body.device-tablet .mobile-hint { display: block; }
-        body.device-tablet .info-section { display: none; }
+        body.device-tablet .controls-touch { display: flex !important; }
+        body.device-tablet .mobile-hint { display: block !important; }
+        body.device-tablet .info-section { display: none !important; }
 
         /* Fullscreen state */
         body.is-fullscreen header,
-        body.is-fullscreen .controls,
+        body.is-fullscreen .controls-desktop,
+        body.is-fullscreen .controls-touch,
         body.is-fullscreen .info-section,
         body.is-fullscreen footer,
         body.is-fullscreen .fullscreen-bar,
@@ -261,7 +262,7 @@
         }
     </style>
 </head>
-<body>
+<body class="device-desktop">
 
 <header>
     <h1>SUPER MARIO DEMO</h1>

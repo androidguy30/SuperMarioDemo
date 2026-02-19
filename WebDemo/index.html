@@ -158,9 +158,6 @@
             pointer-events: none;
             touch-action: none;
         }
-        #touch-controls.visible {
-            display: block;
-        }
 
         /* D-Pad (left side) */
         .dpad {
@@ -293,26 +290,26 @@
 
         /* Device-specific visibility (controlled via body class) */
         body.device-desktop #touch-controls { display: none !important; }
-        body.device-desktop #controls-info { display: block; }
+        body.device-desktop #controls-info { display: block !important; }
 
         body.device-mobile #controls-info { display: none !important; }
-        body.device-mobile #touch-controls { display: block; }
-        body.device-mobile #unity-header { display: none; }
-        body.device-mobile #unity-footer { display: none; }
+        body.device-mobile #touch-controls { display: block !important; }
+        body.device-mobile #unity-header { display: none !important; }
+        body.device-mobile #unity-footer { display: none !important; }
         body.device-mobile #unity-container {
             width: 100vw !important;
             border-radius: 0;
         }
         body.device-mobile #gameCanvas {
-            width: 100vw;
-            height: auto;
+            width: 100vw !important;
+            height: auto !important;
         }
 
         body.device-tablet #controls-info { display: none !important; }
-        body.device-tablet #touch-controls { display: block; }
+        body.device-tablet #touch-controls { display: block !important; }
     </style>
 </head>
-<body>
+<body class="device-desktop">
 
 <div id="unity-container">
     <div id="unity-header">
