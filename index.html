@@ -260,63 +260,13 @@
             height: 100vh !important;
         }
 
-        /* ---- MOBILE SPLASH / ROTATE PROMPT ---- */
-        #mobile-splash {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            z-index: 99999;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            text-align: center;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-        }
-        #mobile-splash .splash-title {
-            color: #e63946;
-            font-size: 28px;
-            font-weight: 900;
-            letter-spacing: 2px;
-            margin-bottom: 12px;
-            text-shadow: 2px 2px 0 #000;
-        }
-        #mobile-splash .splash-sub {
-            color: #f4a261;
-            font-size: 14px;
-            margin-bottom: 30px;
-        }
-        #mobile-splash .splash-play-btn {
-            background: linear-gradient(135deg, #e63946, #c62828);
-            color: #fff;
-            border: none;
-            padding: 16px 48px;
-            border-radius: 12px;
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            box-shadow: 0 4px 20px rgba(230,57,70,0.4);
-            cursor: pointer;
-            animation: pulseBtn 2s ease-in-out infinite;
-        }
-        #mobile-splash .splash-hint {
-            color: #666;
-            font-size: 11px;
-            margin-top: 16px;
-        }
-        @keyframes pulseBtn {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
+        /* ---- ROTATE PROMPT (portrait fallback for mobile/tablet) ---- */
         #rotate-prompt {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            z-index: 99998;
+            z-index: 99999;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -346,7 +296,6 @@
             75% { transform: rotate(0deg); }
         }
         body.device-desktop #rotate-prompt { display: none !important; }
-        body.device-desktop #mobile-splash { display: none !important; }
 
         /* ---- CONTENT SIDEBAR (desktop only) ---- */
         #content-sidebar {
@@ -420,6 +369,72 @@
             color: #555;
             font-size: 12px;
             font-style: italic;
+        }
+
+        /* ---- QUIZ OVERLAY ---- */
+        #quiz-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+        #quiz-overlay.active { display: flex; }
+        .quiz-card {
+            background: #1a1a2e;
+            border: 2px solid #7B2FBE;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        .quiz-card h2 {
+            color: #f4a261;
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+        .quiz-card .question-text {
+            color: #ddd;
+            font-size: 16px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .quiz-option {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: left;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .quiz-option:hover { border-color: #7B2FBE; background: rgba(123,47,190,0.1); }
+        .quiz-option.correct { border-color: #4caf50; background: rgba(76,175,80,0.15); color: #4caf50; }
+        .quiz-option.incorrect { border-color: #e63946; background: rgba(230,57,70,0.15); color: #e63946; }
+        .quiz-skip {
+            margin-top: 12px;
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: underline;
+        }
+        .quiz-skip:hover { color: #888; }
+        .quiz-feedback {
+            margin-top: 16px;
+            font-size: 14px;
+            display: none;
         }
 
         /* ---- VIDEO / LEARNING OVERLAY ---- */
@@ -508,7 +523,7 @@
 
 <div class="game-area">
     <div id="game-frame">
-        <iframe id="game-iframe" src="WebDemo/index.html" width="800" height="530" allowfullscreen allow="fullscreen; autoplay"></iframe>
+        <iframe id="game-iframe" src="WebDemo/index.html" width="800" height="530" allowfullscreen></iframe>
     </div>
     <aside id="content-sidebar">
         <h2>Learning Dashboard</h2>
@@ -527,11 +542,18 @@
                 <div class="quiz-history-empty">Hit a purple block to start learning!</div>
             </div>
         </div>
-        <div class="sidebar-section">
-            <h3>Test Controls</h3>
-            <button id="test-drill-btn" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:linear-gradient(135deg,#7B2FBE,#5a1f8e);color:#fff;font-weight:bold;font-size:13px;cursor:pointer;">Test Drill</button>
-        </div>
     </aside>
+</div>
+
+<!-- Quiz overlay (positioned over everything) -->
+<div id="quiz-overlay" role="dialog" aria-labelledby="quiz-title" aria-modal="true">
+    <div class="quiz-card">
+        <h2 id="quiz-title">Question</h2>
+        <div class="question-text" id="quiz-question"></div>
+        <div class="quiz-options" id="quiz-options" role="group" aria-label="Answer choices"></div>
+        <button class="quiz-skip" id="quiz-skip">Skip (3s)</button>
+        <div class="quiz-feedback" id="quiz-feedback" role="status" aria-live="polite"></div>
+    </div>
 </div>
 
 <!-- Video / Learning Material overlay -->
@@ -631,15 +653,7 @@
     Fan Demo - Not affiliated with Nintendo or Unity Technologies
 </footer>
 
-<!-- Mobile: tap-to-play splash (triggers fullscreen + orientation lock) -->
-<div id="mobile-splash">
-    <div class="splash-title">SUPER MARIO DEMO</div>
-    <div class="splash-sub">Best played in landscape</div>
-    <button class="splash-play-btn" id="splash-play-btn">PLAY</button>
-    <div class="splash-hint">Enters fullscreen &amp; locks landscape</div>
-</div>
-
-<!-- Fallback: rotate prompt for portrait after fullscreen (e.g. iOS) -->
+<!-- Portrait rotate prompt for mobile/tablet -->
 <div id="rotate-prompt">
     <div class="rotate-icon">&#128241;</div>
     <h2>Rotate Your Device</h2>
@@ -682,102 +696,41 @@ function detectDevice() {
         badge.textContent = labels[type];
     }
 
-    // Show mobile splash or check orientation on mobile/tablet
+    // Force landscape on mobile/tablet
     const isTouchDev = (type === 'mobile' || type === 'tablet');
     if (isTouchDev) {
-        showMobileSplashOrGame();
+        tryLockLandscape();
+        checkOrientation();
     }
 
     return type;
 }
 
-// Determine whether to show splash, rotate prompt, or game
-let mobileSplashDismissed = false;
+// Try to lock screen to landscape using Screen Orientation API
+function tryLockLandscape() {
+    if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(function() {
+            // Orientation lock not supported or denied - fallback to rotate prompt
+        });
+    }
+}
 
-function showMobileSplashOrGame() {
-    const splash = document.getElementById('mobile-splash');
+// Show/hide rotate prompt based on current orientation
+function checkOrientation() {
     const rotatePrompt = document.getElementById('rotate-prompt');
     const type = document.body.className.match(/device-(\w+)/);
     const deviceType = type ? type[1] : 'desktop';
-
-    if (deviceType === 'desktop') {
-        if (splash) splash.style.display = 'none';
+    if (!rotatePrompt || deviceType === 'desktop') {
         if (rotatePrompt) rotatePrompt.style.display = 'none';
         return;
     }
-
     const isPortrait = window.innerHeight > window.innerWidth;
-    const inFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
-
-    if (!mobileSplashDismissed) {
-        if (splash) splash.style.display = 'flex';
-        if (rotatePrompt) rotatePrompt.style.display = 'none';
-    } else if (isPortrait && !inFullscreen) {
-        if (splash) splash.style.display = 'none';
-        if (rotatePrompt) rotatePrompt.style.display = 'flex';
-    } else {
-        if (splash) splash.style.display = 'none';
-        if (rotatePrompt) rotatePrompt.style.display = 'none';
-    }
-}
-
-function onSplashPlay() {
-    if (mobileSplashDismissed) return; // prevent double-fire
-    mobileSplashDismissed = true;
-    document.getElementById('mobile-splash').style.display = 'none';
-
-    enterFullscreenAndLock();
-    showMobileSplashOrGame();
-}
-
-function enterFullscreenAndLock() {
-    var el = document.documentElement;
-
-    // Standard API (Chrome, Firefox, Edge) — returns a Promise
-    if (el.requestFullscreen) {
-        el.requestFullscreen().then(function() {
-            lockLandscape();
-            focusIframe();
-        }).catch(function() {});
-        return;
-    }
-
-    // Webkit prefix (older Android/Samsung browsers) — does NOT return a Promise
-    if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen();
-        setTimeout(function() {
-            lockLandscape();
-            focusIframe();
-        }, 300);
-        return;
-    }
-
-    // No fullscreen API (iOS Safari) — just focus iframe
-    focusIframe();
-}
-
-function lockLandscape() {
-    try {
-        if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('landscape').catch(function() {});
-        }
-    } catch(e) {}
-}
-
-function focusIframe() {
-    setTimeout(function() {
-        var iframe = document.getElementById('game-iframe');
-        if (iframe) iframe.focus();
-    }, 100);
+    rotatePrompt.style.display = isPortrait ? 'flex' : 'none';
 }
 
 detectDevice();
-
-// Splash play button (click fires for both mouse and touch)
-document.getElementById('splash-play-btn').addEventListener('click', onSplashPlay);
-
 window.addEventListener('orientationchange', () => setTimeout(detectDevice, 200));
-window.addEventListener('resize', showMobileSplashOrGame);
+window.addEventListener('resize', checkOrientation);
 
 // ---- FULLSCREEN ----
 function goFullscreen() {
@@ -792,10 +745,9 @@ function onFSChange() {
     const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
     document.body.classList.toggle('is-fullscreen', fs);
     if (fs) {
-        lockLandscape();
-        focusIframe();
-    } else {
-        showMobileSplashOrGame();
+        setTimeout(() => {
+            document.getElementById('game-iframe').focus();
+        }, 100);
     }
 }
 
@@ -809,6 +761,8 @@ const gameBridge = {
     blocksHit: 0,
     totalBlocks: 6,
     quizHistory: [],
+    lastTriggerTime: 0,
+    cooldownMs: 30000,
 
     init() {
         this.iframe = document.getElementById('game-iframe');
@@ -829,12 +783,6 @@ const gameBridge = {
             case 'EDUCATIONAL_BLOCK':
                 this.onEducationalBlock(msg.payload);
                 break;
-            case 'DRILL_COMPLETED':
-                this.onDrillCompleted(msg.payload);
-                break;
-            case 'DRILL_DISMISSED':
-                this.addQuizResult('Drill', 'skipped');
-                break;
             case 'STATE_CHANGE':
                 this.onStateChange(msg.payload);
                 break;
@@ -848,18 +796,16 @@ const gameBridge = {
     },
 
     onEducationalBlock(payload) {
-        // Drill display is handled inside the iframe by drillBridge.
-        // Parent just updates sidebar progress.
+        const now = Date.now();
+        if (now - this.lastTriggerTime < this.cooldownMs) {
+            // Cooldown active, skip content
+            return;
+        }
+        this.lastTriggerTime = now;
         this.blocksHit++;
         this.updateProgress();
-    },
-
-    onDrillCompleted(payload) {
-        const p = payload || {};
-        const passed = (p.accuracy || 0) > 0;
-        const label = (p.correct || 0) + '/' + (p.total || 0);
-        this.addQuizResult('Drill (' + label + ')', passed ? 'correct' : 'incorrect');
-        if (p.bonus) this.updateScore(parseInt(document.getElementById('sidebar-score').textContent || '0', 10) + p.bonus);
+        this.sendToGame('PAUSE_GAME');
+        contentManager.showNextContent();
     },
 
     onStateChange(payload) {
@@ -904,12 +850,160 @@ const gameBridge = {
     }
 };
 
-gameBridge.init();
+// ---- CONTENT MANAGER (mock data + quiz/overlay logic) ----
+const contentManager = {
+    currentIndex: 0,
+    skipTimer: null,
+    content: [
+        {
+            type: 'quiz',
+            title: 'Math Challenge',
+            question: 'What is 7 x 8?',
+            options: ['54', '56', '64', '48'],
+            correctIndex: 1
+        },
+        {
+            type: 'learning',
+            title: 'Fun Science Fact',
+            text: 'The Sun is a star at the center of our Solar System. It is about 4.6 billion years old and provides the energy that sustains life on Earth. The Sun\'s surface temperature is approximately 5,500 degrees Celsius!'
+        },
+        {
+            type: 'quiz',
+            title: 'Science Question',
+            question: 'What planet is known as the Red Planet?',
+            options: ['Venus', 'Jupiter', 'Mars', 'Saturn'],
+            correctIndex: 2
+        },
+        {
+            type: 'quiz',
+            title: 'History Quiz',
+            question: 'Who was the first President of the United States?',
+            options: ['Thomas Jefferson', 'George Washington', 'Abraham Lincoln', 'John Adams'],
+            correctIndex: 1
+        },
+        {
+            type: 'learning',
+            title: 'Geography Corner',
+            text: 'The Pacific Ocean is the largest and deepest ocean on Earth, covering more than 63 million square miles. It contains more than half of the free water on Earth and could fit all the world\'s continents inside it!'
+        },
+        {
+            type: 'quiz',
+            title: 'Math Challenge',
+            question: 'What is 144 divided by 12?',
+            options: ['10', '11', '12', '13'],
+            correctIndex: 2
+        }
+    ],
 
-// ---- TEST CONTROLS ----
-document.getElementById('test-drill-btn').addEventListener('click', () => {
-    gameBridge.sendToGame('TRIGGER_DRILL');
-});
+    showNextContent() {
+        if (this.currentIndex >= this.content.length) {
+            // No more content, resume game
+            gameBridge.sendToGame('RESUME_GAME');
+            return;
+        }
+        const item = this.content[this.currentIndex];
+        this.currentIndex++;
+        if (item.type === 'quiz') {
+            this.showQuiz(item);
+        } else if (item.type === 'learning') {
+            this.showLearning(item);
+        }
+    },
+
+    showQuiz(item) {
+        const overlay = document.getElementById('quiz-overlay');
+        const title = document.getElementById('quiz-title');
+        const question = document.getElementById('quiz-question');
+        const options = document.getElementById('quiz-options');
+        const feedback = document.getElementById('quiz-feedback');
+        const skipBtn = document.getElementById('quiz-skip');
+
+        title.textContent = item.title;
+        question.textContent = item.question;
+        feedback.style.display = 'none';
+        feedback.textContent = '';
+        options.innerHTML = '';
+
+        let answered = false;
+
+        item.options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'quiz-option';
+            btn.textContent = opt;
+            btn.onclick = () => {
+                if (answered) return;
+                answered = true;
+                clearTimeout(this.skipTimer);
+                const correct = i === item.correctIndex;
+                btn.classList.add(correct ? 'correct' : 'incorrect');
+                if (!correct) {
+                    options.children[item.correctIndex].classList.add('correct');
+                }
+                feedback.textContent = correct ? 'Correct! +500 points' : 'Not quite. The answer was: ' + item.options[item.correctIndex];
+                feedback.style.color = correct ? '#4caf50' : '#e63946';
+                feedback.style.display = 'block';
+                gameBridge.addQuizResult(item.question, correct ? 'correct' : 'incorrect');
+                setTimeout(() => {
+                    this.closeQuiz(correct);
+                }, 1500);
+            };
+            options.appendChild(btn);
+        });
+
+        // Skip button with 3s timer
+        let skipSec = 3;
+        skipBtn.textContent = 'Skip (' + skipSec + 's)';
+        skipBtn.disabled = true;
+        skipBtn.style.opacity = '0.4';
+        this.skipTimer = setInterval(() => {
+            skipSec--;
+            if (skipSec <= 0) {
+                clearInterval(this.skipTimer);
+                skipBtn.textContent = 'Skip';
+                skipBtn.disabled = false;
+                skipBtn.style.opacity = '1';
+            } else {
+                skipBtn.textContent = 'Skip (' + skipSec + 's)';
+            }
+        }, 1000);
+
+        skipBtn.onclick = () => {
+            if (answered) return;
+            answered = true;
+            clearInterval(this.skipTimer);
+            gameBridge.addQuizResult(item.question, 'skipped');
+            this.closeQuiz(false);
+        };
+
+        overlay.classList.add('active');
+    },
+
+    closeQuiz(passed) {
+        const overlay = document.getElementById('quiz-overlay');
+        overlay.classList.remove('active');
+        clearInterval(this.skipTimer);
+        gameBridge.sendToGame('QUIZ_COMPLETED', { passed });
+    },
+
+    showLearning(item) {
+        const overlay = document.getElementById('video-overlay');
+        const title = document.getElementById('video-title');
+        const text = document.getElementById('learning-text');
+        const continueBtn = document.getElementById('video-continue');
+
+        title.textContent = item.title;
+        text.textContent = item.text;
+
+        continueBtn.onclick = () => {
+            overlay.classList.remove('active');
+            gameBridge.sendToGame('QUIZ_COMPLETED', { passed: true });
+        };
+
+        overlay.classList.add('active');
+    }
+};
+
+gameBridge.init();
 </script>
 
 </body>

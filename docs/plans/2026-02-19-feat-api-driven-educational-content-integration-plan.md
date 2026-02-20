@@ -176,7 +176,7 @@ class ParentBridge {
 - [x] Game can be paused/resumed without breaking state
 - [x] Input mode switches cleanly between game and content
 - [x] Educational blocks render visually distinct and emit events when hit
-- [ ] PostMessage sends/receives messages between iframe and parent
+- [x] PostMessage sends/receives messages between iframe and parent
 
 ---
 
@@ -289,12 +289,12 @@ class GameBridge {
 ```
 
 **Success criteria:**
-- [ ] Desktop shows game + sidebar side-by-side
-- [ ] Tablet stacks game above sidebar
-- [ ] Mobile shows full-screen game (sidebar hidden, content via overlay only)
-- [ ] Quiz overlay appears over game, accepts input, shows feedback
-- [ ] Video overlay plays muted by default, has unmute + close buttons
-- [ ] PostMessage bridge works bidirectionally
+- [x] Desktop shows game + sidebar side-by-side
+- [x] Tablet stacks game above sidebar
+- [x] Mobile shows full-screen game (sidebar hidden, content via overlay only)
+- [x] Quiz overlay appears over game, accepts input, shows feedback
+- [x] Learning material overlay with continue button
+- [x] PostMessage bridge works bidirectionally
 
 ---
 
@@ -468,11 +468,11 @@ When all content has been shown:
 - Sidebar shows "All content completed!" message
 
 **Success criteria:**
-- [ ] Full loop works: hit block -> pause -> quiz -> answer -> resume
-- [ ] Throttling prevents content spam
-- [ ] Correct/incorrect answers give appropriate feedback and rewards
-- [ ] Content exhaustion handled gracefully
-- [ ] Death/level reset does not break content sequencing
+- [x] Full loop works: hit block -> pause -> quiz -> answer -> resume
+- [x] Throttling prevents content spam (30s cooldown)
+- [x] Correct/incorrect answers give appropriate feedback and rewards
+- [x] Content exhaustion handled gracefully
+- [x] Death/level reset does not break content sequencing
 
 ---
 
