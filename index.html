@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Super Mario Demo - Unity WebGL</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -214,30 +214,88 @@
         body.device-desktop .controls-touch { display: none !important; }
         body.device-desktop .mobile-hint { display: none !important; }
 
-        /* Mobile device */
+        /* Mobile device - landscape fullscreen experience */
         body.device-mobile .controls-desktop { display: none !important; }
-        body.device-mobile .controls-touch { display: flex !important; }
-        body.device-mobile .mobile-hint { display: block !important; }
-        body.device-mobile header h1 { font-size: 24px; }
-        body.device-mobile header p { font-size: 12px; }
+        body.device-mobile .controls-touch { display: none !important; }
+        body.device-mobile .mobile-hint { display: none !important; }
+        body.device-mobile header { display: none !important; }
+        body.device-mobile .fullscreen-bar { display: none !important; }
         body.device-mobile .info-section { display: none !important; }
+        body.device-mobile footer { display: none !important; }
         body.device-mobile #game-frame {
-            width: 100vw;
+            width: 100vw !important;
+            height: 100vh !important;
             border-radius: 0;
             border: none;
-            margin: 10px 0;
+            margin: 0;
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 1;
         }
         body.device-mobile #game-frame iframe {
-            width: 100vw;
-            height: 56.25vw;
-            min-height: 300px;
+            width: 100vw !important;
+            height: 100vh !important;
         }
 
-        /* Tablet device */
+        /* Tablet device - landscape fullscreen experience */
         body.device-tablet .controls-desktop { display: none !important; }
-        body.device-tablet .controls-touch { display: flex !important; }
-        body.device-tablet .mobile-hint { display: block !important; }
+        body.device-tablet .controls-touch { display: none !important; }
+        body.device-tablet .mobile-hint { display: none !important; }
+        body.device-tablet header { display: none !important; }
+        body.device-tablet .fullscreen-bar { display: none !important; }
         body.device-tablet .info-section { display: none !important; }
+        body.device-tablet footer { display: none !important; }
+        body.device-tablet #game-frame {
+            width: 100vw !important;
+            height: 100vh !important;
+            border-radius: 0;
+            border: none;
+            margin: 0;
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 1;
+        }
+        body.device-tablet #game-frame iframe {
+            width: 100vw !important;
+            height: 100vh !important;
+        }
+
+        /* ---- ROTATE PROMPT (portrait fallback for mobile/tablet) ---- */
+        #rotate-prompt {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            z-index: 99999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-align: center;
+        }
+        #rotate-prompt .rotate-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            animation: rotatePhone 2s ease-in-out infinite;
+        }
+        #rotate-prompt h2 {
+            font-size: 22px;
+            margin-bottom: 10px;
+            color: #f4a261;
+        }
+        #rotate-prompt p {
+            font-size: 14px;
+            color: #888;
+            max-width: 260px;
+            line-height: 1.5;
+        }
+        @keyframes rotatePhone {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-90deg); }
+            50% { transform: rotate(-90deg); }
+            75% { transform: rotate(0deg); }
+        }
+        body.device-desktop #rotate-prompt { display: none !important; }
 
         /* Fullscreen state */
         body.is-fullscreen header,
@@ -366,6 +424,13 @@
     Fan Demo - Not affiliated with Nintendo or Unity Technologies
 </footer>
 
+<!-- Portrait rotate prompt for mobile/tablet -->
+<div id="rotate-prompt">
+    <div class="rotate-icon">&#128241;</div>
+    <h2>Rotate Your Device</h2>
+    <p>This game plays best in landscape mode. Please rotate your device to continue.</p>
+</div>
+
 <script>
 // ---- DEVICE DETECTION (same logic as WebDemo) ----
 function detectDevice() {
@@ -402,11 +467,41 @@ function detectDevice() {
         badge.textContent = labels[type];
     }
 
+    // Force landscape on mobile/tablet
+    const isTouchDev = (type === 'mobile' || type === 'tablet');
+    if (isTouchDev) {
+        tryLockLandscape();
+        checkOrientation();
+    }
+
     return type;
+}
+
+// Try to lock screen to landscape using Screen Orientation API
+function tryLockLandscape() {
+    if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(function() {
+            // Orientation lock not supported or denied - fallback to rotate prompt
+        });
+    }
+}
+
+// Show/hide rotate prompt based on current orientation
+function checkOrientation() {
+    const rotatePrompt = document.getElementById('rotate-prompt');
+    const type = document.body.className.match(/device-(\w+)/);
+    const deviceType = type ? type[1] : 'desktop';
+    if (!rotatePrompt || deviceType === 'desktop') {
+        if (rotatePrompt) rotatePrompt.style.display = 'none';
+        return;
+    }
+    const isPortrait = window.innerHeight > window.innerWidth;
+    rotatePrompt.style.display = isPortrait ? 'flex' : 'none';
 }
 
 detectDevice();
 window.addEventListener('orientationchange', () => setTimeout(detectDevice, 200));
+window.addEventListener('resize', checkOrientation);
 
 // ---- FULLSCREEN ----
 function goFullscreen() {
