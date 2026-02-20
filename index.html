@@ -566,36 +566,59 @@ function showMobileSplashOrGame() {
 }
 
 function onSplashPlay() {
+    if (mobileSplashDismissed) return; // prevent double-fire
     mobileSplashDismissed = true;
     document.getElementById('mobile-splash').style.display = 'none';
 
+    enterFullscreenAndLock();
+    showMobileSplashOrGame();
+}
+
+function enterFullscreenAndLock() {
     var el = document.documentElement;
-    var reqFS = el.requestFullscreen || el.webkitRequestFullscreen;
-    if (reqFS) {
-        reqFS.call(el).then(function() {
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(function() {});
-            }
-            // Focus the iframe after entering fullscreen
-            setTimeout(function() {
-                document.getElementById('game-iframe').focus();
-            }, 100);
-        }).catch(function() {
-            showMobileSplashOrGame();
-        });
-    } else {
-        showMobileSplashOrGame();
+
+    // Standard API (Chrome, Firefox, Edge) — returns a Promise
+    if (el.requestFullscreen) {
+        el.requestFullscreen().then(function() {
+            lockLandscape();
+            focusIframe();
+        }).catch(function() {});
+        return;
     }
+
+    // Webkit prefix (older Android/Samsung browsers) — does NOT return a Promise
+    if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+        setTimeout(function() {
+            lockLandscape();
+            focusIframe();
+        }, 300);
+        return;
+    }
+
+    // No fullscreen API (iOS Safari) — just focus iframe
+    focusIframe();
+}
+
+function lockLandscape() {
+    try {
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function() {});
+        }
+    } catch(e) {}
+}
+
+function focusIframe() {
+    setTimeout(function() {
+        var iframe = document.getElementById('game-iframe');
+        if (iframe) iframe.focus();
+    }, 100);
 }
 
 detectDevice();
 
-// Splash play button
+// Splash play button (click fires for both mouse and touch)
 document.getElementById('splash-play-btn').addEventListener('click', onSplashPlay);
-document.getElementById('splash-play-btn').addEventListener('touchend', function(e) {
-    e.preventDefault();
-    onSplashPlay();
-});
 
 window.addEventListener('orientationchange', () => setTimeout(detectDevice, 200));
 window.addEventListener('resize', showMobileSplashOrGame);
@@ -613,15 +636,9 @@ function onFSChange() {
     const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
     document.body.classList.toggle('is-fullscreen', fs);
     if (fs) {
-        // Try orientation lock now that we're in fullscreen
-        if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('landscape').catch(function() {});
-        }
-        setTimeout(() => {
-            document.getElementById('game-iframe').focus();
-        }, 100);
+        lockLandscape();
+        focusIframe();
     } else {
-        // Exited fullscreen — check if we need rotate prompt
         showMobileSplashOrGame();
     }
 }
