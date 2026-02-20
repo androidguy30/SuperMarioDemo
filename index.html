@@ -746,6 +746,14 @@ const gameBridge = {
     onStateChange(payload) {
         if (payload) {
             this.updateScore(payload.score || 0);
+            this.gameState = payload.to || payload.state || '';
+            const btn = document.getElementById('test-drill-btn');
+            if (btn) {
+                const canDrill = this.gameState === 'playing';
+                btn.disabled = !canDrill;
+                btn.style.opacity = canDrill ? '1' : '0.5';
+                btn.style.cursor = canDrill ? 'pointer' : 'not-allowed';
+            }
         }
     },
 
@@ -788,7 +796,12 @@ const gameBridge = {
 gameBridge.init();
 
 // ---- TEST CONTROLS ----
-document.getElementById('test-drill-btn').addEventListener('click', () => {
+const testDrillBtn = document.getElementById('test-drill-btn');
+testDrillBtn.disabled = true;
+testDrillBtn.style.opacity = '0.5';
+testDrillBtn.style.cursor = 'not-allowed';
+testDrillBtn.addEventListener('click', () => {
+    if (testDrillBtn.disabled) return;
     gameBridge.sendToGame('TRIGGER_DRILL');
 });
 </script>
