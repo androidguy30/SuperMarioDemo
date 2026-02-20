@@ -124,6 +124,22 @@
             margin-top: 12px;
         }
 
+        /* ---- DRILL OVERLAY ---- */
+        #drill-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+        }
+        #drill-overlay sat-drill {
+            width: min(480px, 90vw);
+            max-height: 85vh;
+        }
+
         /* ---- FULLSCREEN ---- */
         #unity-container.fullscreen {
             position: fixed;
@@ -544,6 +560,20 @@
     <div class="rotate-icon">&#128241;</div>
     <h2>Rotate Your Device</h2>
     <p>This game plays best in landscape mode. Please rotate your device to continue.</p>
+</div>
+
+<!-- SAT Drill SDK overlay -->
+<script type="module" src="vendor/sat-drill.js"></script>
+<div id="drill-overlay">
+    <sat-drill
+        id="sat-drill-el"
+        domain="Math"
+        difficulty="mixed"
+        question-count="1"
+        show-timer="false"
+        show-progress="false"
+        theme-mode="dark"
+    ></sat-drill>
 </div>
 
 <script>
@@ -2296,6 +2326,79 @@ window.addEventListener('resize', () => {
     }
 });
 
+// ---- DRILL BRIDGE (SAT Drill SDK integration) ----
+const drillBridge = {
+    overlay: null,
+    drillEl: null,
+    cooldownUntil: 0,
+    COOLDOWN_MS: 30000,
+    apiKey: '',
+    apiUrl: '',
+
+    init(apiKey, apiUrl) {
+        this.apiKey = apiKey;
+        this.apiUrl = apiUrl;
+        this.overlay = document.getElementById('drill-overlay');
+        this.drillEl = document.getElementById('sat-drill-el');
+
+        if (!this.drillEl) return;
+
+        // Set SDK config
+        this.drillEl.setAttribute('api-key', apiKey);
+        this.drillEl.setAttribute('api-url', apiUrl);
+
+        // Game event → show drill
+        gameEvents.on('educationalBlock', (data) => this.onEducationalBlock(data));
+
+        // Drill events → resume game
+        this.drillEl.addEventListener('drill-completed', (e) => this.onDrillComplete(e));
+        this.drillEl.addEventListener('drill-abandoned', () => this.onDrillDismiss());
+        this.drillEl.addEventListener('drill-error', () => this.onDrillDismiss());
+        this.drillEl.addEventListener('drill-close', () => this.onDrillDismiss());
+    },
+
+    onEducationalBlock(data) {
+        if (gameState !== 'playing' && gameState !== 'paused') return;
+        if (Date.now() < this.cooldownUntil) return;
+
+        pauseGame();
+        this.overlay.style.display = 'flex';
+        // Randomize domain for variety
+        const domains = ['Math', 'Reading and Writing'];
+        this.drillEl.setAttribute('domain', domains[Math.floor(Math.random() * 2)]);
+    },
+
+    onDrillComplete(e) {
+        const detail = e.detail || {};
+        const accuracy = detail.accuracy ?? detail.score ?? 0;
+        const bonus = Math.round(accuracy * 500);
+        if (bonus > 0) {
+            score += bonus;
+            scorePopups.push({ x: player.x, y: player.y - 20, text: '+' + bonus, life: 40 });
+        }
+        this.cooldownUntil = Date.now() + this.COOLDOWN_MS;
+        parentBridge.notify('DRILL_COMPLETED', { accuracy, correct: detail.correct || 0, total: detail.total || 0, bonus });
+        this.dismiss();
+    },
+
+    onDrillDismiss() {
+        this.cooldownUntil = Date.now() + 15000;
+        parentBridge.notify('DRILL_DISMISSED', {});
+        this.dismiss();
+    },
+
+    dismiss() {
+        this.overlay.style.display = 'none';
+        resumeGame();
+    }
+};
+
+// Initialize drill bridge (replace with actual API key and URL)
+drillBridge.init(
+    'REDACTED_API_KEY',
+    'https://learnerlabs.app'
+);
+
 // ---- PARENT BRIDGE (postMessage) ----
 const parentBridge = {
     origin: window.location.origin,
@@ -2327,6 +2430,11 @@ const parentBridge = {
                     scorePopups.push({ x: player.x, y: player.y - 20, text: '500', life: 40 });
                 }
                 resumeGame();
+                break;
+            case 'DRILL_CONFIG':
+                if (msg.payload && msg.payload.apiKey) {
+                    drillBridge.init(msg.payload.apiKey, msg.payload.apiUrl);
+                }
                 break;
         }
     }
