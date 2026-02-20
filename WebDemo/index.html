@@ -564,17 +564,7 @@
 
 <!-- SAT Drill SDK overlay -->
 <script type="module" src="vendor/sat-drill.js"></script>
-<div id="drill-overlay">
-    <sat-drill
-        id="sat-drill-el"
-        domain="Math"
-        difficulty="mixed"
-        question-count="1"
-        show-timer="false"
-        show-progress="false"
-        theme-mode="dark"
-    ></sat-drill>
-</div>
+<div id="drill-overlay"></div>
 
 <script>
 // ============================================================
@@ -2339,22 +2329,38 @@ const drillBridge = {
         this.apiKey = apiKey;
         this.apiUrl = apiUrl;
         this.overlay = document.getElementById('drill-overlay');
-        this.drillEl = document.getElementById('sat-drill-el');
-
-        if (!this.drillEl) return;
-
-        // Set SDK config
-        this.drillEl.setAttribute('api-key', apiKey);
-        this.drillEl.setAttribute('api-url', apiUrl);
 
         // Game event → show drill
         gameEvents.on('educationalBlock', (data) => this.onEducationalBlock(data));
+    },
 
-        // Drill events → resume game
-        this.drillEl.addEventListener('drill-completed', (e) => this.onDrillComplete(e));
-        this.drillEl.addEventListener('drill-abandoned', () => this.onDrillDismiss());
-        this.drillEl.addEventListener('drill-error', () => this.onDrillDismiss());
-        this.drillEl.addEventListener('drill-close', () => this.onDrillDismiss());
+    createDrillElement() {
+        // Remove old element if present
+        const old = this.overlay.querySelector('sat-drill');
+        if (old) old.remove();
+
+        // Create fresh element so SDK starts from idle state
+        const el = document.createElement('sat-drill');
+        el.id = 'sat-drill-el';
+        el.setAttribute('api-key', this.apiKey);
+        el.setAttribute('api-url', this.apiUrl);
+        el.setAttribute('question-count', '1');
+        el.setAttribute('show-timer', 'false');
+        el.setAttribute('show-progress', 'false');
+        el.setAttribute('theme-mode', 'dark');
+
+        // Randomize domain for variety
+        const domains = ['Math', 'Reading and Writing'];
+        el.setAttribute('domain', domains[Math.floor(Math.random() * 2)]);
+
+        // Wire events
+        el.addEventListener('drill-completed', (e) => this.onDrillComplete(e));
+        el.addEventListener('drill-abandoned', () => this.onDrillDismiss());
+        el.addEventListener('drill-error', () => this.onDrillDismiss());
+        el.addEventListener('drill-close', () => this.onDrillDismiss());
+
+        this.overlay.appendChild(el);
+        this.drillEl = el;
     },
 
     onEducationalBlock(data) {
@@ -2362,10 +2368,8 @@ const drillBridge = {
         if (Date.now() < this.cooldownUntil) return;
 
         pauseGame();
+        this.createDrillElement();
         this.overlay.style.display = 'flex';
-        // Randomize domain for variety
-        const domains = ['Math', 'Reading and Writing'];
-        this.drillEl.setAttribute('domain', domains[Math.floor(Math.random() * 2)]);
     },
 
     onDrillComplete(e) {
@@ -2389,6 +2393,10 @@ const drillBridge = {
 
     dismiss() {
         this.overlay.style.display = 'none';
+        // Remove drill element so next trigger gets a fresh instance
+        const el = this.overlay.querySelector('sat-drill');
+        if (el) el.remove();
+        this.drillEl = null;
         resumeGame();
     }
 };
