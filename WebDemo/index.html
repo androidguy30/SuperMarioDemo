@@ -666,6 +666,12 @@ function detectDevice() {
 
 // Determine whether to show splash, rotate prompt, or game
 let mobileSplashDismissed = false;
+const isInIframe = (window.self !== window.top);
+
+// If loaded inside an iframe, skip the splash entirely — the parent page handles it
+if (isInIframe) {
+    mobileSplashDismissed = true;
+}
 
 function showMobileSplashOrGame() {
     const splash = document.getElementById('mobile-splash');
@@ -681,7 +687,7 @@ function showMobileSplashOrGame() {
     const inFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
 
     if (!mobileSplashDismissed) {
-        // Show tap-to-play splash
+        // Show tap-to-play splash (only when loaded standalone, not in iframe)
         if (splash) splash.style.display = 'flex';
         if (rotatePrompt) rotatePrompt.style.display = 'none';
     } else if (isPortrait && !inFullscreen) {
@@ -697,26 +703,42 @@ function showMobileSplashOrGame() {
 
 // Handle the "PLAY" button tap — enters fullscreen then locks landscape
 function onSplashPlay() {
+    if (mobileSplashDismissed) return; // prevent double-fire
     mobileSplashDismissed = true;
     document.getElementById('mobile-splash').style.display = 'none';
 
-    // Request fullscreen (required before orientation lock works)
-    const el = document.documentElement;
-    const reqFS = el.requestFullscreen || el.webkitRequestFullscreen;
-    if (reqFS) {
-        reqFS.call(el).then(function() {
-            // Now try orientation lock (works on Android Chrome in fullscreen)
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(function() {});
-            }
-        }).catch(function() {
-            // Fullscreen denied — fall back to rotate prompt if portrait
-            showMobileSplashOrGame();
-        });
-    } else {
-        // No fullscreen API — show rotate prompt if portrait
-        showMobileSplashOrGame();
+    enterFullscreenAndLock();
+    showMobileSplashOrGame();
+}
+
+function enterFullscreenAndLock() {
+    var el = document.documentElement;
+
+    // Standard API (Chrome, Firefox, Edge) — returns a Promise
+    if (el.requestFullscreen) {
+        el.requestFullscreen().then(function() {
+            lockLandscape();
+        }).catch(function() {});
+        return;
     }
+
+    // Webkit prefix (older Android/Samsung browsers) — does NOT return a Promise
+    if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+        setTimeout(lockLandscape, 300);
+        return;
+    }
+
+    // No fullscreen API (iOS Safari) — orientation lock won't work either,
+    // just rely on the rotate prompt
+}
+
+function lockLandscape() {
+    try {
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function() {});
+        }
+    } catch(e) {}
 }
 
 // Resize canvas to fill viewport on mobile/tablet
@@ -796,12 +818,8 @@ function initTouchControls() {
 detectDevice();
 initTouchControls();
 
-// Splash play button
+// Splash play button (click fires for both mouse and touch — no need for touchend)
 document.getElementById('splash-play-btn').addEventListener('click', onSplashPlay);
-document.getElementById('splash-play-btn').addEventListener('touchend', function(e) {
-    e.preventDefault();
-    onSplashPlay();
-});
 
 // Re-detect on orientation change
 window.addEventListener('orientationchange', () => {
@@ -2131,9 +2149,7 @@ function onFullscreenChange() {
         container.classList.add('fullscreen');
         resizeCanvas();
         // Try orientation lock now that we're in fullscreen
-        if (isTouchDevice && screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('landscape').catch(function() {});
-        }
+        if (isTouchDevice) lockLandscape();
     } else {
         container.classList.remove('fullscreen');
         canvas.style.width = '';
