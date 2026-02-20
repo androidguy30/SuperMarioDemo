@@ -2393,11 +2393,8 @@ const drillBridge = {
     }
 };
 
-// Initialize drill bridge (replace with actual API key and URL)
-drillBridge.init(
-    'REDACTED_API_KEY',
-    'https://learnerlabs.app'
-);
+// API key is injected via parent postMessage (DRILL_CONFIG type)
+drillBridge.init('', 'https://learnerlabs.app');
 
 // ---- PARENT BRIDGE (postMessage) ----
 const parentBridge = {
