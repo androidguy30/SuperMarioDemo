@@ -476,6 +476,10 @@
                 <div class="quiz-history-empty">Hit a purple block to start learning!</div>
             </div>
         </div>
+        <div class="sidebar-section">
+            <h3>Test Controls</h3>
+            <button id="test-drill-btn" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:linear-gradient(135deg,#7B2FBE,#5a1f8e);color:#fff;font-weight:bold;font-size:13px;cursor:pointer;">Test Drill</button>
+        </div>
     </aside>
 </div>
 
@@ -782,6 +786,11 @@ const gameBridge = {
 };
 
 gameBridge.init();
+
+// ---- TEST CONTROLS ----
+document.getElementById('test-drill-btn').addEventListener('click', () => {
+    gameBridge.sendToGame('TRIGGER_DRILL');
+});
 </script>
 
 </body>

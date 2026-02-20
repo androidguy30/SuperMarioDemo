@@ -2393,8 +2393,15 @@ const drillBridge = {
     }
 };
 
-// API key is injected via parent postMessage (DRILL_CONFIG type)
-drillBridge.init('', 'https://learnerlabs.app');
+// Load API key from .env file
+fetch('../.env').then(r => r.ok ? r.text() : '').then(text => {
+    const env = {};
+    text.split('\n').forEach(line => {
+        const match = line.match(/^\s*([^#=]+?)\s*=\s*(.*?)\s*$/);
+        if (match) env[match[1]] = match[2];
+    });
+    drillBridge.init(env.DRILL_API_KEY || '', env.DRILL_API_URL || 'http://localhost:3000');
+}).catch(() => drillBridge.init('', 'http://localhost:3000'));
 
 // ---- PARENT BRIDGE (postMessage) ----
 const parentBridge = {
@@ -2432,6 +2439,9 @@ const parentBridge = {
                 if (msg.payload && msg.payload.apiKey) {
                     drillBridge.init(msg.payload.apiKey, msg.payload.apiUrl);
                 }
+                break;
+            case 'TRIGGER_DRILL':
+                drillBridge.onEducationalBlock({});
                 break;
         }
     }
