@@ -712,14 +712,6 @@ window.addEventListener('orientationchange', () => {
     }, 200);
 });
 
-// Also listen for resize to catch orientation changes and adjust canvas
-window.addEventListener('resize', () => {
-    if (isTouchDevice) {
-        checkOrientation();
-        resizeMobileCanvas();
-    }
-});
-
 // ---- LEVEL DATA ----
 // Tile types: 0=air, 1=ground, 2=brick, 3=question, 4=pipe_tl, 5=pipe_tr, 6=pipe_bl, 7=pipe_br, 8=used_block, 9=flag
 const LEVEL_WIDTH = 210;
@@ -2072,7 +2064,10 @@ document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 window.addEventListener('resize', () => {
     if (isFullscreen) resizeCanvas();
-    if (isTouchDevice) resizeMobileCanvas();
+    if (isTouchDevice) {
+        checkOrientation();
+        resizeMobileCanvas();
+    }
 });
 
 // ---- START ----
