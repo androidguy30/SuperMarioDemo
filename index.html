@@ -382,59 +382,9 @@
             justify-content: center;
         }
         #quiz-overlay.active { display: flex; }
-        .quiz-card {
-            background: #1a1a2e;
-            border: 2px solid #7B2FBE;
-            border-radius: 12px;
-            padding: 30px;
-            max-width: 500px;
+        #drill-container {
+            max-width: 560px;
             width: 90%;
-            text-align: center;
-        }
-        .quiz-card h2 {
-            color: #f4a261;
-            font-size: 20px;
-            margin-bottom: 16px;
-        }
-        .quiz-card .question-text {
-            color: #ddd;
-            font-size: 16px;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        .quiz-options {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .quiz-option {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid #444;
-            border-radius: 8px;
-            padding: 12px 16px;
-            color: #ccc;
-            cursor: pointer;
-            font-size: 14px;
-            text-align: left;
-            transition: border-color 0.2s, background 0.2s;
-        }
-        .quiz-option:hover { border-color: #7B2FBE; background: rgba(123,47,190,0.1); }
-        .quiz-option.correct { border-color: #4caf50; background: rgba(76,175,80,0.15); color: #4caf50; }
-        .quiz-option.incorrect { border-color: #e63946; background: rgba(230,57,70,0.15); color: #e63946; }
-        .quiz-skip {
-            margin-top: 12px;
-            background: none;
-            border: none;
-            color: #666;
-            cursor: pointer;
-            font-size: 12px;
-            text-decoration: underline;
-        }
-        .quiz-skip:hover { color: #888; }
-        .quiz-feedback {
-            margin-top: 16px;
-            font-size: 14px;
-            display: none;
         }
 
         /* ---- VIDEO / LEARNING OVERLAY ---- */
@@ -546,14 +496,8 @@
 </div>
 
 <!-- Quiz overlay (positioned over everything) -->
-<div id="quiz-overlay" role="dialog" aria-labelledby="quiz-title" aria-modal="true">
-    <div class="quiz-card">
-        <h2 id="quiz-title">Question</h2>
-        <div class="question-text" id="quiz-question"></div>
-        <div class="quiz-options" id="quiz-options" role="group" aria-label="Answer choices"></div>
-        <button class="quiz-skip" id="quiz-skip">Skip (3s)</button>
-        <div class="quiz-feedback" id="quiz-feedback" role="status" aria-live="polite"></div>
-    </div>
+<div id="quiz-overlay" role="dialog" aria-modal="true">
+    <div id="drill-container"></div>
 </div>
 
 <!-- Video / Learning Material overlay -->
@@ -850,138 +794,94 @@ const gameBridge = {
     }
 };
 
-// ---- CONTENT MANAGER (mock data + quiz/overlay logic) ----
+// ---- DRILL CONFIG (sat-drill SDK) ----
+const DRILL_CONFIG = {
+    apiKey: '',           // TODO: Set your LearnerLabs API key here
+    domain: 'math',       // Content domain
+    skill: '',            // Optional skill filter
+    difficulty: 'mixed',
+    questionCount: 3,
+    viewSpec: 'game-card',
+    themeMode: 'dark',
+    themePrimary: '#7B2FBE'
+};
+
+// ---- CONTENT MANAGER (sat-drill SDK + learning material) ----
 const contentManager = {
     currentIndex: 0,
-    skipTimer: null,
     content: [
-        {
-            type: 'quiz',
-            title: 'Math Challenge',
-            question: 'What is 7 x 8?',
-            options: ['54', '56', '64', '48'],
-            correctIndex: 1
-        },
-        {
-            type: 'learning',
-            title: 'Fun Science Fact',
-            text: 'The Sun is a star at the center of our Solar System. It is about 4.6 billion years old and provides the energy that sustains life on Earth. The Sun\'s surface temperature is approximately 5,500 degrees Celsius!'
-        },
-        {
-            type: 'quiz',
-            title: 'Science Question',
-            question: 'What planet is known as the Red Planet?',
-            options: ['Venus', 'Jupiter', 'Mars', 'Saturn'],
-            correctIndex: 2
-        },
-        {
-            type: 'quiz',
-            title: 'History Quiz',
-            question: 'Who was the first President of the United States?',
-            options: ['Thomas Jefferson', 'George Washington', 'Abraham Lincoln', 'John Adams'],
-            correctIndex: 1
-        },
-        {
-            type: 'learning',
-            title: 'Geography Corner',
-            text: 'The Pacific Ocean is the largest and deepest ocean on Earth, covering more than 63 million square miles. It contains more than half of the free water on Earth and could fit all the world\'s continents inside it!'
-        },
-        {
-            type: 'quiz',
-            title: 'Math Challenge',
-            question: 'What is 144 divided by 12?',
-            options: ['10', '11', '12', '13'],
-            correctIndex: 2
-        }
+        { type: 'quiz' },
+        { type: 'learning', title: 'Fun Science Fact', text: 'The Sun is a star at the center of our Solar System. It is about 4.6 billion years old and provides the energy that sustains life on Earth. The Sun\'s surface temperature is approximately 5,500 degrees Celsius!' },
+        { type: 'quiz' },
+        { type: 'quiz' },
+        { type: 'learning', title: 'Geography Corner', text: 'The Pacific Ocean is the largest and deepest ocean on Earth, covering more than 63 million square miles. It contains more than half of the free water on Earth and could fit all the world\'s continents inside it!' },
+        { type: 'quiz' }
     ],
 
     showNextContent() {
         if (this.currentIndex >= this.content.length) {
-            // No more content, resume game
             gameBridge.sendToGame('RESUME_GAME');
             return;
         }
         const item = this.content[this.currentIndex];
         this.currentIndex++;
         if (item.type === 'quiz') {
-            this.showQuiz(item);
+            this.showDrill();
         } else if (item.type === 'learning') {
             this.showLearning(item);
         }
     },
 
-    showQuiz(item) {
+    showDrill() {
         const overlay = document.getElementById('quiz-overlay');
-        const title = document.getElementById('quiz-title');
-        const question = document.getElementById('quiz-question');
-        const options = document.getElementById('quiz-options');
-        const feedback = document.getElementById('quiz-feedback');
-        const skipBtn = document.getElementById('quiz-skip');
+        const container = document.getElementById('drill-container');
+        container.innerHTML = '';
 
-        title.textContent = item.title;
-        question.textContent = item.question;
-        feedback.style.display = 'none';
-        feedback.textContent = '';
-        options.innerHTML = '';
+        const drill = document.createElement('sat-drill');
+        drill.setAttribute('api-key', DRILL_CONFIG.apiKey);
+        if (DRILL_CONFIG.domain) drill.setAttribute('domain', DRILL_CONFIG.domain);
+        if (DRILL_CONFIG.skill) drill.setAttribute('skill', DRILL_CONFIG.skill);
+        drill.setAttribute('difficulty', DRILL_CONFIG.difficulty);
+        drill.setAttribute('question-count', DRILL_CONFIG.questionCount);
+        drill.setAttribute('view-spec', DRILL_CONFIG.viewSpec);
+        drill.setAttribute('theme-mode', DRILL_CONFIG.themeMode);
+        drill.setAttribute('theme-primary', DRILL_CONFIG.themePrimary);
+        drill.setAttribute('show-results', 'false');
 
-        let answered = false;
-
-        item.options.forEach((opt, i) => {
-            const btn = document.createElement('button');
-            btn.className = 'quiz-option';
-            btn.textContent = opt;
-            btn.onclick = () => {
-                if (answered) return;
-                answered = true;
-                clearTimeout(this.skipTimer);
-                const correct = i === item.correctIndex;
-                btn.classList.add(correct ? 'correct' : 'incorrect');
-                if (!correct) {
-                    options.children[item.correctIndex].classList.add('correct');
-                }
-                feedback.textContent = correct ? 'Correct! +500 points' : 'Not quite. The answer was: ' + item.options[item.correctIndex];
-                feedback.style.color = correct ? '#4caf50' : '#e63946';
-                feedback.style.display = 'block';
-                gameBridge.addQuizResult(item.question, correct ? 'correct' : 'incorrect');
-                setTimeout(() => {
-                    this.closeQuiz(correct);
-                }, 1500);
-            };
-            options.appendChild(btn);
+        drill.addEventListener('drill-completed', (e) => {
+            const detail = e.detail || {};
+            const passed = (detail.accuracy || 0) > 0;
+            gameBridge.addQuizResult(
+                DRILL_CONFIG.domain + ' drill (' + (detail.correct || 0) + '/' + (detail.total || 0) + ')',
+                passed ? 'correct' : 'incorrect'
+            );
+            this.closeDrill(passed);
         });
 
-        // Skip button with 3s timer
-        let skipSec = 3;
-        skipBtn.textContent = 'Skip (' + skipSec + 's)';
-        skipBtn.disabled = true;
-        skipBtn.style.opacity = '0.4';
-        this.skipTimer = setInterval(() => {
-            skipSec--;
-            if (skipSec <= 0) {
-                clearInterval(this.skipTimer);
-                skipBtn.textContent = 'Skip';
-                skipBtn.disabled = false;
-                skipBtn.style.opacity = '1';
-            } else {
-                skipBtn.textContent = 'Skip (' + skipSec + 's)';
-            }
-        }, 1000);
+        drill.addEventListener('drill-close', () => {
+            gameBridge.addQuizResult(DRILL_CONFIG.domain + ' drill', 'skipped');
+            this.closeDrill(false);
+        });
 
-        skipBtn.onclick = () => {
-            if (answered) return;
-            answered = true;
-            clearInterval(this.skipTimer);
-            gameBridge.addQuizResult(item.question, 'skipped');
-            this.closeQuiz(false);
-        };
+        drill.addEventListener('drill-abandoned', () => {
+            gameBridge.addQuizResult(DRILL_CONFIG.domain + ' drill', 'skipped');
+            this.closeDrill(false);
+        });
 
+        drill.addEventListener('drill-error', (e) => {
+            console.warn('[sat-drill] Error:', e.detail);
+            this.closeDrill(false);
+        });
+
+        container.appendChild(drill);
         overlay.classList.add('active');
     },
 
-    closeQuiz(passed) {
+    closeDrill(passed) {
         const overlay = document.getElementById('quiz-overlay');
+        const container = document.getElementById('drill-container');
         overlay.classList.remove('active');
-        clearInterval(this.skipTimer);
+        container.innerHTML = '';
         gameBridge.sendToGame('QUIZ_COMPLETED', { passed });
     },
 
@@ -1005,6 +905,7 @@ const contentManager = {
 
 gameBridge.init();
 </script>
+<script src="WebDemo/vendor/sat-drill.js"></script>
 
 </body>
 </html>
