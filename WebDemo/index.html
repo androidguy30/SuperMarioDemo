@@ -2296,6 +2296,43 @@ window.addEventListener('resize', () => {
     }
 });
 
+// ---- PARENT BRIDGE (postMessage) ----
+const parentBridge = {
+    origin: window.location.origin,
+    init() {
+        window.addEventListener('message', (e) => {
+            if (e.origin !== this.origin) return;
+            this.handleMessage(e.data);
+        });
+        // Forward key game events to parent
+        gameEvents.on('educationalBlock', (data) => this.notify('EDUCATIONAL_BLOCK', data));
+        gameEvents.on('stateChange', (data) => this.notify('STATE_CHANGE', data));
+        gameEvents.on('flagReached', (data) => this.notify('FLAG_REACHED', data));
+        gameEvents.on('playerDeath', (data) => this.notify('PLAYER_DEATH', data));
+        gameEvents.on('blockHit', (data) => this.notify('BLOCK_HIT', data));
+        gameEvents.on('enemyStomp', (data) => this.notify('ENEMY_STOMP', data));
+    },
+    notify(type, payload) {
+        if (window.parent === window) return; // not in iframe
+        window.parent.postMessage({ source: 'mario-game', type, payload }, this.origin);
+    },
+    handleMessage(msg) {
+        if (!msg || !msg.type) return;
+        switch (msg.type) {
+            case 'PAUSE_GAME': pauseGame(); break;
+            case 'RESUME_GAME': resumeGame(); break;
+            case 'QUIZ_COMPLETED':
+                if (msg.payload && msg.payload.passed) {
+                    score += 500;
+                    scorePopups.push({ x: player.x, y: player.y - 20, text: '500', life: 40 });
+                }
+                resumeGame();
+                break;
+        }
+    }
+};
+parentBridge.init();
+
 // ---- START ----
 buildLevel();
 initEntities();

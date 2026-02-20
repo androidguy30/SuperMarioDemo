@@ -348,6 +348,129 @@
         body.device-desktop #rotate-prompt { display: none !important; }
         body.device-desktop #mobile-splash { display: none !important; }
 
+        /* ---- CONTENT SIDEBAR (desktop only) ---- */
+        #content-sidebar {
+            display: none;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            min-width: 280px;
+            max-width: 320px;
+            max-height: 560px;
+            overflow-y: auto;
+            align-self: start;
+        }
+        body.device-desktop #content-sidebar { display: block; }
+        body.device-desktop .game-area {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: start;
+            justify-content: center;
+            max-width: 1160px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        #content-sidebar h2 {
+            font-size: 16px;
+            color: #f4a261;
+            margin-bottom: 12px;
+        }
+        #content-sidebar .sidebar-section {
+            margin-bottom: 16px;
+        }
+        #content-sidebar .sidebar-section h3 {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #222;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7B2FBE, #f4a261);
+            transition: width 0.3s;
+            border-radius: 4px;
+        }
+        .progress-label {
+            font-size: 11px;
+            color: #666;
+        }
+        .quiz-history-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #2a2a3a;
+            font-size: 12px;
+        }
+        .quiz-history-item .result {
+            font-weight: bold;
+        }
+        .quiz-history-item .result.pass { color: #4caf50; }
+        .quiz-history-item .result.fail { color: #e63946; }
+        .quiz-history-item .result.skip { color: #888; }
+        .quiz-history-empty {
+            color: #555;
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        /* ---- VIDEO / LEARNING OVERLAY ---- */
+        #video-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+        #video-overlay.active { display: flex; }
+        .video-panel {
+            background: #1a1a2e;
+            border: 2px solid #f4a261;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 640px;
+            width: 90%;
+            text-align: center;
+        }
+        .video-panel h2 {
+            color: #f4a261;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+        .video-panel .learning-text {
+            color: #ccc;
+            font-size: 14px;
+            line-height: 1.6;
+            text-align: left;
+            margin-bottom: 16px;
+        }
+        .video-panel video {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        .video-continue {
+            background: linear-gradient(135deg, #f4a261, #e76f51);
+            border: none;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .video-continue:hover { opacity: 0.9; }
+
         /* Fullscreen state */
         body.is-fullscreen header,
         body.is-fullscreen .controls-desktop,
@@ -383,8 +506,41 @@
     <button class="fullscreen-main-btn" onclick="goFullscreen()">PLAY FULLSCREEN</button>
 </div>
 
-<div id="game-frame">
-    <iframe id="game-iframe" src="WebDemo/index.html" width="800" height="530" allowfullscreen allow="fullscreen; autoplay"></iframe>
+<div class="game-area">
+    <div id="game-frame">
+        <iframe id="game-iframe" src="WebDemo/index.html" width="800" height="530" allowfullscreen allow="fullscreen; autoplay"></iframe>
+    </div>
+    <aside id="content-sidebar">
+        <h2>Learning Dashboard</h2>
+        <div class="sidebar-section">
+            <h3>Progress</h3>
+            <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+            <span class="progress-label" id="progress-label">0 / 6 blocks discovered</span>
+        </div>
+        <div class="sidebar-section">
+            <h3>Score</h3>
+            <span id="sidebar-score" style="color:#f4a261;font-size:18px;font-weight:bold;">0</span>
+        </div>
+        <div class="sidebar-section">
+            <h3>Quiz History</h3>
+            <div id="quiz-history">
+                <div class="quiz-history-empty">Hit a purple block to start learning!</div>
+            </div>
+        </div>
+        <div class="sidebar-section">
+            <h3>Test Controls</h3>
+            <button id="test-drill-btn" style="width:100%;padding:8px 0;border-radius:8px;border:none;background:linear-gradient(135deg,#7B2FBE,#5a1f8e);color:#fff;font-weight:bold;font-size:13px;cursor:pointer;">Test Drill</button>
+        </div>
+    </aside>
+</div>
+
+<!-- Video / Learning Material overlay -->
+<div id="video-overlay" role="dialog" aria-labelledby="video-title" aria-modal="true">
+    <div class="video-panel">
+        <h2 id="video-title">Learning Material</h2>
+        <div class="learning-text" id="learning-text"></div>
+        <button class="video-continue" id="video-continue">Continue Playing</button>
+    </div>
 </div>
 
 <div class="mobile-hint">
@@ -645,6 +801,115 @@ function onFSChange() {
 
 document.addEventListener('fullscreenchange', onFSChange);
 document.addEventListener('webkitfullscreenchange', onFSChange);
+
+// ---- GAME BRIDGE (listens for postMessage from iframe) ----
+const gameBridge = {
+    iframe: null,
+    origin: window.location.origin,
+    blocksHit: 0,
+    totalBlocks: 6,
+    quizHistory: [],
+
+    init() {
+        this.iframe = document.getElementById('game-iframe');
+        window.addEventListener('message', (e) => {
+            if (e.origin !== this.origin) return;
+            if (!e.data || e.data.source !== 'mario-game') return;
+            this.handleMessage(e.data);
+        });
+    },
+
+    sendToGame(type, payload) {
+        if (!this.iframe || !this.iframe.contentWindow) return;
+        this.iframe.contentWindow.postMessage({ type, payload }, this.origin);
+    },
+
+    handleMessage(msg) {
+        switch (msg.type) {
+            case 'EDUCATIONAL_BLOCK':
+                this.onEducationalBlock(msg.payload);
+                break;
+            case 'DRILL_COMPLETED':
+                this.onDrillCompleted(msg.payload);
+                break;
+            case 'DRILL_DISMISSED':
+                this.addQuizResult('Drill', 'skipped');
+                break;
+            case 'STATE_CHANGE':
+                this.onStateChange(msg.payload);
+                break;
+            case 'BLOCK_HIT':
+            case 'ENEMY_STOMP':
+            case 'FLAG_REACHED':
+            case 'PLAYER_DEATH':
+                this.updateSidebar(msg.payload);
+                break;
+        }
+    },
+
+    onEducationalBlock(payload) {
+        // Drill display is handled inside the iframe by drillBridge.
+        // Parent just updates sidebar progress.
+        this.blocksHit++;
+        this.updateProgress();
+    },
+
+    onDrillCompleted(payload) {
+        const p = payload || {};
+        const passed = (p.accuracy || 0) > 0;
+        const label = (p.correct || 0) + '/' + (p.total || 0);
+        this.addQuizResult('Drill (' + label + ')', passed ? 'correct' : 'incorrect');
+        if (p.bonus) this.updateScore(parseInt(document.getElementById('sidebar-score').textContent || '0', 10) + p.bonus);
+    },
+
+    onStateChange(payload) {
+        if (payload) {
+            this.updateScore(payload.score || 0);
+        }
+    },
+
+    updateProgress() {
+        const pct = Math.min(100, Math.round((this.blocksHit / this.totalBlocks) * 100));
+        const fill = document.getElementById('progress-fill');
+        const label = document.getElementById('progress-label');
+        if (fill) fill.style.width = pct + '%';
+        if (label) label.textContent = this.blocksHit + ' / ' + this.totalBlocks + ' blocks discovered';
+    },
+
+    updateScore(s) {
+        const el = document.getElementById('sidebar-score');
+        if (el) el.textContent = s;
+    },
+
+    updateSidebar(payload) {
+        if (payload && typeof payload.score === 'number') {
+            this.updateScore(payload.score);
+        }
+    },
+
+    addQuizResult(question, result) {
+        this.quizHistory.push({ question, result, time: new Date() });
+        const container = document.getElementById('quiz-history');
+        if (!container) return;
+        // Clear empty message
+        const empty = container.querySelector('.quiz-history-empty');
+        if (empty) empty.remove();
+        const item = document.createElement('div');
+        item.className = 'quiz-history-item';
+        const cls = result === 'correct' ? 'pass' : result === 'skipped' ? 'skip' : 'fail';
+        item.innerHTML = '<span class="result ' + cls + '">' +
+            (result === 'correct' ? 'Correct' : result === 'skipped' ? 'Skipped' : 'Incorrect') +
+            '</span> - ' + question;
+        container.prepend(item);
+    }
+};
+
+gameBridge.init();
+
+// ---- TEST CONTROLS ----
+document.getElementById('test-drill-btn').addEventListener('click', () => {
+    gameBridge.sendToGame('TRIGGER_DRILL');
+});
 </script>
 
 </body>
