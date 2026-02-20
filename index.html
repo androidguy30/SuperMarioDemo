@@ -260,13 +260,63 @@
             height: 100vh !important;
         }
 
-        /* ---- ROTATE PROMPT (portrait fallback for mobile/tablet) ---- */
-        #rotate-prompt {
+        /* ---- MOBILE SPLASH / ROTATE PROMPT ---- */
+        #mobile-splash {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
             z-index: 99999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-align: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #mobile-splash .splash-title {
+            color: #e63946;
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        #mobile-splash .splash-sub {
+            color: #f4a261;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        #mobile-splash .splash-play-btn {
+            background: linear-gradient(135deg, #e63946, #c62828);
+            color: #fff;
+            border: none;
+            padding: 16px 48px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 20px rgba(230,57,70,0.4);
+            cursor: pointer;
+            animation: pulseBtn 2s ease-in-out infinite;
+        }
+        #mobile-splash .splash-hint {
+            color: #666;
+            font-size: 11px;
+            margin-top: 16px;
+        }
+        @keyframes pulseBtn {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        #rotate-prompt {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            z-index: 99998;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -296,6 +346,7 @@
             75% { transform: rotate(0deg); }
         }
         body.device-desktop #rotate-prompt { display: none !important; }
+        body.device-desktop #mobile-splash { display: none !important; }
 
         /* Fullscreen state */
         body.is-fullscreen header,
@@ -333,7 +384,7 @@
 </div>
 
 <div id="game-frame">
-    <iframe id="game-iframe" src="WebDemo/index.html" width="800" height="530" allowfullscreen></iframe>
+    <iframe id="game-iframe" src="WebDemo/index.html" width="800" height="530" allowfullscreen allow="fullscreen; autoplay"></iframe>
 </div>
 
 <div class="mobile-hint">
@@ -424,7 +475,15 @@
     Fan Demo - Not affiliated with Nintendo or Unity Technologies
 </footer>
 
-<!-- Portrait rotate prompt for mobile/tablet -->
+<!-- Mobile: tap-to-play splash (triggers fullscreen + orientation lock) -->
+<div id="mobile-splash">
+    <div class="splash-title">SUPER MARIO DEMO</div>
+    <div class="splash-sub">Best played in landscape</div>
+    <button class="splash-play-btn" id="splash-play-btn">PLAY</button>
+    <div class="splash-hint">Enters fullscreen &amp; locks landscape</div>
+</div>
+
+<!-- Fallback: rotate prompt for portrait after fullscreen (e.g. iOS) -->
 <div id="rotate-prompt">
     <div class="rotate-icon">&#128241;</div>
     <h2>Rotate Your Device</h2>
@@ -467,41 +526,79 @@ function detectDevice() {
         badge.textContent = labels[type];
     }
 
-    // Force landscape on mobile/tablet
+    // Show mobile splash or check orientation on mobile/tablet
     const isTouchDev = (type === 'mobile' || type === 'tablet');
     if (isTouchDev) {
-        tryLockLandscape();
-        checkOrientation();
+        showMobileSplashOrGame();
     }
 
     return type;
 }
 
-// Try to lock screen to landscape using Screen Orientation API
-function tryLockLandscape() {
-    if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(function() {
-            // Orientation lock not supported or denied - fallback to rotate prompt
-        });
-    }
-}
+// Determine whether to show splash, rotate prompt, or game
+let mobileSplashDismissed = false;
 
-// Show/hide rotate prompt based on current orientation
-function checkOrientation() {
+function showMobileSplashOrGame() {
+    const splash = document.getElementById('mobile-splash');
     const rotatePrompt = document.getElementById('rotate-prompt');
     const type = document.body.className.match(/device-(\w+)/);
     const deviceType = type ? type[1] : 'desktop';
-    if (!rotatePrompt || deviceType === 'desktop') {
+
+    if (deviceType === 'desktop') {
+        if (splash) splash.style.display = 'none';
         if (rotatePrompt) rotatePrompt.style.display = 'none';
         return;
     }
+
     const isPortrait = window.innerHeight > window.innerWidth;
-    rotatePrompt.style.display = isPortrait ? 'flex' : 'none';
+    const inFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+    if (!mobileSplashDismissed) {
+        if (splash) splash.style.display = 'flex';
+        if (rotatePrompt) rotatePrompt.style.display = 'none';
+    } else if (isPortrait && !inFullscreen) {
+        if (splash) splash.style.display = 'none';
+        if (rotatePrompt) rotatePrompt.style.display = 'flex';
+    } else {
+        if (splash) splash.style.display = 'none';
+        if (rotatePrompt) rotatePrompt.style.display = 'none';
+    }
+}
+
+function onSplashPlay() {
+    mobileSplashDismissed = true;
+    document.getElementById('mobile-splash').style.display = 'none';
+
+    var el = document.documentElement;
+    var reqFS = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (reqFS) {
+        reqFS.call(el).then(function() {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(function() {});
+            }
+            // Focus the iframe after entering fullscreen
+            setTimeout(function() {
+                document.getElementById('game-iframe').focus();
+            }, 100);
+        }).catch(function() {
+            showMobileSplashOrGame();
+        });
+    } else {
+        showMobileSplashOrGame();
+    }
 }
 
 detectDevice();
+
+// Splash play button
+document.getElementById('splash-play-btn').addEventListener('click', onSplashPlay);
+document.getElementById('splash-play-btn').addEventListener('touchend', function(e) {
+    e.preventDefault();
+    onSplashPlay();
+});
+
 window.addEventListener('orientationchange', () => setTimeout(detectDevice, 200));
-window.addEventListener('resize', checkOrientation);
+window.addEventListener('resize', showMobileSplashOrGame);
 
 // ---- FULLSCREEN ----
 function goFullscreen() {
@@ -516,9 +613,16 @@ function onFSChange() {
     const fs = !!(document.fullscreenElement || document.webkitFullscreenElement);
     document.body.classList.toggle('is-fullscreen', fs);
     if (fs) {
+        // Try orientation lock now that we're in fullscreen
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function() {});
+        }
         setTimeout(() => {
             document.getElementById('game-iframe').focus();
         }, 100);
+    } else {
+        // Exited fullscreen — check if we need rotate prompt
+        showMobileSplashOrGame();
     }
 }
 

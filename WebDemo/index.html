@@ -327,13 +327,63 @@
             height: 100vh !important;
         }
 
-        /* ---- ROTATE PROMPT (portrait fallback for mobile/tablet) ---- */
-        #rotate-prompt {
+        /* ---- MOBILE SPLASH / ROTATE PROMPT ---- */
+        #mobile-splash {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             background: #1a1a2e;
             z-index: 99999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-align: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #mobile-splash .splash-title {
+            color: #e63946;
+            font-size: 28px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            text-shadow: 2px 2px 0 #000;
+        }
+        #mobile-splash .splash-sub {
+            color: #f4a261;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        #mobile-splash .splash-play-btn {
+            background: linear-gradient(135deg, #e63946, #c62828);
+            color: #fff;
+            border: none;
+            padding: 16px 48px;
+            border-radius: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 20px rgba(230,57,70,0.4);
+            cursor: pointer;
+            animation: pulseBtn 2s ease-in-out infinite;
+        }
+        #mobile-splash .splash-hint {
+            color: #666;
+            font-size: 11px;
+            margin-top: 16px;
+        }
+        @keyframes pulseBtn {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        #rotate-prompt {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #1a1a2e;
+            z-index: 99998;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -481,7 +531,15 @@
     <div class="touch-fs-btn" id="touch-fullscreen-btn">&#x26F6;</div>
 </div>
 
-<!-- Portrait rotate prompt for mobile/tablet -->
+<!-- Mobile: tap-to-play splash (triggers fullscreen + orientation lock) -->
+<div id="mobile-splash">
+    <div class="splash-title">SUPER MARIO DEMO</div>
+    <div class="splash-sub">Best played in landscape</div>
+    <button class="splash-play-btn" id="splash-play-btn">PLAY</button>
+    <div class="splash-hint">Enters fullscreen &amp; locks landscape</div>
+</div>
+
+<!-- Fallback: rotate prompt for portrait after fullscreen (e.g. iOS) -->
 <div id="rotate-prompt">
     <div class="rotate-icon">&#128241;</div>
     <h2>Rotate Your Device</h2>
@@ -598,33 +656,67 @@ function detectDevice() {
     document.body.classList.remove('device-desktop', 'device-mobile', 'device-tablet');
     document.body.classList.add('device-' + deviceType);
 
-    // Force landscape on mobile/tablet
+    // Show mobile splash or check orientation on mobile/tablet
     if (isTouchDevice) {
-        tryLockLandscape();
-        checkOrientation();
+        showMobileSplashOrGame();
     }
 
     return deviceType;
 }
 
-// Try to lock screen to landscape using Screen Orientation API
-function tryLockLandscape() {
-    if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock('landscape').catch(function() {
-            // Orientation lock not supported or denied - fallback to rotate prompt
-        });
-    }
-}
+// Determine whether to show splash, rotate prompt, or game
+let mobileSplashDismissed = false;
 
-// Show/hide rotate prompt based on current orientation
-function checkOrientation() {
+function showMobileSplashOrGame() {
+    const splash = document.getElementById('mobile-splash');
     const rotatePrompt = document.getElementById('rotate-prompt');
-    if (!rotatePrompt || deviceType === 'desktop') {
+
+    if (!isTouchDevice || deviceType === 'desktop') {
+        if (splash) splash.style.display = 'none';
         if (rotatePrompt) rotatePrompt.style.display = 'none';
         return;
     }
+
     const isPortrait = window.innerHeight > window.innerWidth;
-    rotatePrompt.style.display = isPortrait ? 'flex' : 'none';
+    const inFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+    if (!mobileSplashDismissed) {
+        // Show tap-to-play splash
+        if (splash) splash.style.display = 'flex';
+        if (rotatePrompt) rotatePrompt.style.display = 'none';
+    } else if (isPortrait && !inFullscreen) {
+        // After splash dismissed but in portrait without fullscreen: show rotate prompt
+        if (splash) splash.style.display = 'none';
+        if (rotatePrompt) rotatePrompt.style.display = 'flex';
+    } else {
+        // Landscape or in fullscreen: show game
+        if (splash) splash.style.display = 'none';
+        if (rotatePrompt) rotatePrompt.style.display = 'none';
+    }
+}
+
+// Handle the "PLAY" button tap — enters fullscreen then locks landscape
+function onSplashPlay() {
+    mobileSplashDismissed = true;
+    document.getElementById('mobile-splash').style.display = 'none';
+
+    // Request fullscreen (required before orientation lock works)
+    const el = document.documentElement;
+    const reqFS = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (reqFS) {
+        reqFS.call(el).then(function() {
+            // Now try orientation lock (works on Android Chrome in fullscreen)
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(function() {});
+            }
+        }).catch(function() {
+            // Fullscreen denied — fall back to rotate prompt if portrait
+            showMobileSplashOrGame();
+        });
+    } else {
+        // No fullscreen API — show rotate prompt if portrait
+        showMobileSplashOrGame();
+    }
 }
 
 // Resize canvas to fill viewport on mobile/tablet
@@ -704,7 +796,14 @@ function initTouchControls() {
 detectDevice();
 initTouchControls();
 
-// Re-detect on orientation change (tablet rotating may change behavior)
+// Splash play button
+document.getElementById('splash-play-btn').addEventListener('click', onSplashPlay);
+document.getElementById('splash-play-btn').addEventListener('touchend', function(e) {
+    e.preventDefault();
+    onSplashPlay();
+});
+
+// Re-detect on orientation change
 window.addEventListener('orientationchange', () => {
     setTimeout(() => {
         detectDevice();
@@ -2031,12 +2130,20 @@ function onFullscreenChange() {
     if (isFullscreen) {
         container.classList.add('fullscreen');
         resizeCanvas();
+        // Try orientation lock now that we're in fullscreen
+        if (isTouchDevice && screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function() {});
+        }
     } else {
         container.classList.remove('fullscreen');
         canvas.style.width = '';
         canvas.style.height = '';
         canvas.width = BASE_WIDTH;
         canvas.height = BASE_HEIGHT;
+        // Check if we need to show rotate prompt after exiting fullscreen
+        if (isTouchDevice) {
+            showMobileSplashOrGame();
+        }
     }
 }
 
@@ -2065,7 +2172,7 @@ document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 window.addEventListener('resize', () => {
     if (isFullscreen) resizeCanvas();
     if (isTouchDevice) {
-        checkOrientation();
+        showMobileSplashOrGame();
         resizeMobileCanvas();
     }
 });
