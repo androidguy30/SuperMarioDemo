@@ -327,6 +327,48 @@
             height: 100vh !important;
         }
 
+        /* ---- ON-SCREEN CTA (mobile/tablet only) ---- */
+        #game-cta {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 9999;
+            pointer-events: none;
+            padding-bottom: 28px;
+            text-align: center;
+        }
+        #game-cta .cta-btn {
+            display: inline-block;
+            pointer-events: auto;
+            background: linear-gradient(135deg, #e63946, #c62828);
+            color: #fff;
+            border: none;
+            padding: 14px 52px;
+            border-radius: 50px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 24px rgba(230,57,70,0.5), 0 0 0 3px rgba(255,255,255,0.15);
+            cursor: pointer;
+            animation: ctaPulse 2s ease-in-out infinite;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #game-cta .cta-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 12px rgba(230,57,70,0.4);
+        }
+        @keyframes ctaPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 24px rgba(230,57,70,0.5), 0 0 0 3px rgba(255,255,255,0.15); }
+            50% { transform: scale(1.04); box-shadow: 0 6px 32px rgba(230,57,70,0.6), 0 0 0 4px rgba(255,255,255,0.25); }
+        }
+        /* Hide CTA on desktop */
+        body.device-desktop #game-cta { display: none !important; }
+
         /* ---- MOBILE SPLASH / ROTATE PROMPT ---- */
         #mobile-splash {
             display: none;
@@ -529,6 +571,11 @@
     </div>
     <div class="touch-start-btn" data-key="Enter">START</div>
     <div class="touch-fs-btn" id="touch-fullscreen-btn">&#x26F6;</div>
+</div>
+
+<!-- On-screen CTA for mobile/tablet (shown on title, gameover, win states) -->
+<div id="game-cta">
+    <button class="cta-btn" id="cta-btn">START</button>
 </div>
 
 <!-- Mobile: tap-to-play splash (triggers fullscreen + orientation lock) -->
@@ -820,6 +867,37 @@ initTouchControls();
 
 // Splash play button (click fires for both mouse and touch — no need for touchend)
 document.getElementById('splash-play-btn').addEventListener('click', onSplashPlay);
+
+// ---- ON-SCREEN CTA (mobile/tablet) ----
+const ctaOverlay = document.getElementById('game-cta');
+const ctaBtn = document.getElementById('cta-btn');
+
+// Map game states to CTA labels
+const ctaLabels = {
+    title: 'START',
+    gameover: 'RETRY',
+    win: 'PLAY AGAIN'
+};
+
+function updateCTA() {
+    if (!isTouchDevice || !ctaOverlay) {
+        if (ctaOverlay) ctaOverlay.style.display = 'none';
+        return;
+    }
+    const label = ctaLabels[gameState];
+    if (label) {
+        ctaBtn.textContent = label;
+        ctaOverlay.style.display = 'block';
+    } else {
+        ctaOverlay.style.display = 'none';
+    }
+}
+
+ctaBtn.addEventListener('click', function() {
+    // Simulate Enter key press for one frame
+    keys['Enter'] = true;
+    setTimeout(function() { keys['Enter'] = false; }, 120);
+});
 
 // Re-detect on orientation change
 window.addEventListener('orientationchange', () => {
@@ -1475,9 +1553,8 @@ function drawTitleScreen() {
     ctx.fillStyle = COLORS.white;
     ctx.font = '16px "Courier New", monospace';
     const blink = Math.sin(frameCount * 0.06) > 0;
-    if (blink) {
-        const startMsg = isTouchDevice ? 'TAP TO START' : 'PRESS ENTER TO START';
-        ctx.fillText(startMsg, canvas.width / 2, by + 155);
+    if (blink && !isTouchDevice) {
+        ctx.fillText('PRESS ENTER TO START', canvas.width / 2, by + 155);
     }
 
     ctx.fillStyle = '#aaa';
@@ -1520,11 +1597,10 @@ function drawGameOverScreen() {
     ctx.fillText('Final Score: ' + score, canvas.width / 2, canvas.height / 2 + 20);
 
     const blink = Math.sin(frameCount * 0.06) > 0;
-    if (blink) {
+    if (blink && !isTouchDevice) {
         ctx.fillStyle = COLORS.question;
         ctx.font = '16px "Courier New", monospace';
-        const retryMsg = isTouchDevice ? 'TAP TO RETRY' : 'PRESS ENTER TO RETRY';
-        ctx.fillText(retryMsg, canvas.width / 2, canvas.height / 2 + 70);
+        ctx.fillText('PRESS ENTER TO RETRY', canvas.width / 2, canvas.height / 2 + 70);
     }
 }
 
@@ -1544,11 +1620,10 @@ function drawWinOverlay() {
     ctx.fillText('Coins: ' + coins, canvas.width / 2, canvas.height / 2 + 40);
 
     const blink = Math.sin(frameCount * 0.06) > 0;
-    if (blink) {
+    if (blink && !isTouchDevice) {
         ctx.fillStyle = '#aaa';
         ctx.font = '16px "Courier New", monospace';
-        const playAgainMsg = isTouchDevice ? 'TAP TO PLAY AGAIN' : 'PRESS ENTER TO PLAY AGAIN';
-        ctx.fillText(playAgainMsg, canvas.width / 2, canvas.height / 2 + 90);
+        ctx.fillText('PRESS ENTER TO PLAY AGAIN', canvas.width / 2, canvas.height / 2 + 90);
     }
 }
 
@@ -2121,6 +2196,9 @@ function gameLoop(timestamp) {
             }
             break;
     }
+
+    // Update on-screen CTA for mobile/tablet
+    updateCTA();
 
     requestAnimationFrame(gameLoop);
 }
