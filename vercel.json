@@ -1,0 +1,7 @@
+{
+  "buildCommand": "node generate-env.js",
+  "outputDirectory": "WebDemo",
+  "installCommand": "echo 'No dependencies to install'",
+  "framework": null
+}
+
