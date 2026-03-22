@@ -1,0 +1,84 @@
+<!--
+  SAT Drill SDK — Quick Start Example
+  Configure your API key in ../../.env (DRILL_API_KEY and DRILL_API_URL)
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAT Drill — Quick Start</title>
+  <script type="module" src="../vendor/sat-drill.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f1f5f9; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+    sat-drill { width: 100%; max-width: 640px; display: block; }
+    #event-log { width: 100%; max-width: 640px; margin-top: 2rem; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 1rem; font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow-y: auto; }
+    #event-log h2 { font-size: 0.9rem; margin-bottom: 0.5rem; color: #94a3b8; }
+    .log-entry { padding: 0.25rem 0; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+    .log-entry .time { color: #64748b; margin-right: 0.5rem; }
+    .log-entry .name { color: #818cf8; font-weight: 600; margin-right: 0.5rem; }
+    #status { color: #94a3b8; font-size: 0.85rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>SAT Drill — Quick Start</h1>
+  <div id="status">Loading config from .env...</div>
+
+  <sat-drill
+    id="drill-el"
+    domain="Math"
+    question-count="3"
+    theme-mode="dark"
+  ></sat-drill>
+
+  <div id="event-log">
+    <h2>Event Log</h2>
+  </div>
+
+  <script>
+    const drill = document.getElementById('drill-el');
+    const log = document.getElementById('event-log');
+    const status = document.getElementById('status');
+
+    // Load API key from .env (same pattern as main game)
+    fetch('../../.env').then(r => r.ok ? r.text() : '').then(text => {
+      const env = {};
+      text.split('\n').forEach(line => {
+        const match = line.match(/^\s*([^#=]+?)\s*=\s*(.*?)\s*$/);
+        if (match) env[match[1]] = match[2];
+      });
+      const apiKey = env.DRILL_API_KEY || '';
+      const apiUrl = env.DRILL_API_URL || 'http://localhost:3000';
+      if (!apiKey) {
+        status.textContent = 'No DRILL_API_KEY found in .env — create one at project root';
+        status.style.color = '#f87171';
+        return;
+      }
+      drill.setAttribute('api-key', apiKey);
+      drill.setAttribute('api-url', apiUrl);
+      status.textContent = 'Key: ' + apiKey.substring(0, 12) + '... | API: ' + apiUrl;
+    }).catch(() => {
+      status.textContent = 'Failed to load .env — make sure you serve from project root';
+      status.style.color = '#f87171';
+    });
+
+    function addLog(name, detail) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      const time = new Date().toLocaleTimeString();
+      entry.innerHTML = '<span class="time">' + time + '</span>'
+        + '<span class="name">' + name + '</span>'
+        + '<span>' + JSON.stringify(detail) + '</span>';
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    drill.addEventListener('drill-started', (e) => addLog('drill-started', e.detail));
+    drill.addEventListener('question-answered', (e) => addLog('question-answered', e.detail));
+    drill.addEventListener('drill-completed', (e) => addLog('drill-completed', e.detail));
+    drill.addEventListener('drill-error', (e) => addLog('drill-error', e.detail));
+  </script>
+</body>
+</html>

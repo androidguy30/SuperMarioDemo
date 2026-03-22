@@ -124,6 +124,22 @@
             margin-top: 12px;
         }
 
+        /* ---- DRILL OVERLAY ---- */
+        #drill-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+        }
+        #drill-overlay sat-drill {
+            width: min(480px, 90vw);
+            max-height: 85vh;
+        }
+
         /* ---- FULLSCREEN ---- */
         #unity-container.fullscreen {
             position: fixed;
@@ -546,6 +562,10 @@
     <p>This game plays best in landscape mode. Please rotate your device to continue.</p>
 </div>
 
+<!-- SAT Drill SDK overlay -->
+<script type="module" src="vendor/sat-drill.js"></script>
+<div id="drill-overlay"></div>
+
 <script>
 // ============================================================
 // SUPER MARIO DEMO - HTML5 Canvas WebGL-style Player
@@ -597,8 +617,38 @@ const COLORS = {
     black: '#000',
 };
 
+// ---- EVENT BUS ----
+const gameEvents = {
+    _listeners: {},
+    on(event, fn) {
+        (this._listeners[event] = this._listeners[event] || []).push(fn);
+        return () => this.off(event, fn);
+    },
+    off(event, fn) {
+        const list = this._listeners[event];
+        if (list) this._listeners[event] = list.filter(f => f !== fn);
+    },
+    emit(event, data) {
+        (this._listeners[event] || []).forEach(fn => fn(data));
+    }
+};
+
+// ---- INPUT MODE ----
+let inputMode = 'game'; // 'game' | 'content'
+
+function setInputMode(mode) {
+    inputMode = mode;
+    const touchCtrl = document.getElementById('touch-controls');
+    if (mode === 'content') {
+        if (touchCtrl) touchCtrl.style.display = 'none';
+    } else {
+        if (touchCtrl && deviceType !== 'desktop') touchCtrl.style.display = '';
+    }
+    gameEvents.emit('inputModeChange', { mode });
+}
+
 // ---- GAME STATE ----
-let gameState = 'loading'; // loading, title, playing, dead, gameover, win
+let gameState = 'loading'; // loading, title, playing, dead, gameover, win, paused
 let score = 0;
 let coins = 0;
 let lives = 3;
@@ -612,12 +662,16 @@ let fpsCount = 0;
 // ---- INPUT ----
 const keys = {};
 document.addEventListener('keydown', e => {
+    if (inputMode !== 'game') return;
     keys[e.code] = true;
     if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) {
         e.preventDefault();
     }
 });
-document.addEventListener('keyup', e => { keys[e.code] = false; });
+document.addEventListener('keyup', e => {
+    if (inputMode !== 'game') return;
+    keys[e.code] = false;
+});
 
 // ---- DEVICE DETECTION ----
 // Categorizes into: 'mobile', 'tablet', or 'desktop'
@@ -830,7 +884,7 @@ window.addEventListener('orientationchange', () => {
 });
 
 // ---- LEVEL DATA ----
-// Tile types: 0=air, 1=ground, 2=brick, 3=question, 4=pipe_tl, 5=pipe_tr, 6=pipe_bl, 7=pipe_br, 8=used_block, 9=flag
+// Tile types: 0=air, 1=ground, 2=brick, 3=question, 4=pipe_tl, 5=pipe_tr, 6=pipe_bl, 7=pipe_br, 8=used_block, 9=flag, 10=educational
 const LEVEL_WIDTH = 210;
 const LEVEL_HEIGHT = 15;
 let levelData = [];
@@ -898,6 +952,10 @@ function buildLevel() {
         }
     }
 
+    // Educational blocks (tile 10) at strategic positions
+    const eduBlocks = [[35,9],[55,9],[75,9],[105,9],[125,9],[170,9]];
+    for (const [x,y] of eduBlocks) levelData[y][x] = 10;
+
     // Flag at position 198
     levelData[4][198] = 9;
 
@@ -914,7 +972,8 @@ function getTile(x, y) {
 
 function isSolid(tileType) {
     return tileType === 1 || tileType === 2 || tileType === 3 || tileType === 8 ||
-           tileType === 4 || tileType === 5 || tileType === 6 || tileType === 7;
+           tileType === 4 || tileType === 5 || tileType === 6 || tileType === 7 ||
+           tileType === 10;
 }
 
 // ---- PLAYER ----
@@ -1308,6 +1367,20 @@ function drawTile(tileType, screenX, screenY) {
             ctx.fillRect(x + TILE - 6, y, 4, TILE);
             break;
 
+        case 10: // Educational block
+            const ef = Math.sin(frameCount * 0.06) * 0.3 + 0.7;
+            ctx.fillStyle = '#7B2FBE'; // Purple base
+            ctx.fillRect(x, y, TILE, TILE);
+            ctx.fillStyle = '#5A1F8E';
+            ctx.fillRect(x, y + TILE - 2, TILE, 2);
+            ctx.fillRect(x + TILE - 2, y, 2, TILE);
+            // Star icon
+            ctx.fillStyle = `rgba(255,215,0,${ef})`;
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('\u2605', x + TILE/2, y + TILE/2 + 6);
+            break;
+
         case 9: // Flag
             // Pole
             ctx.fillStyle = COLORS.flagPole;
@@ -1528,6 +1601,35 @@ function drawGameOverScreen() {
     }
 }
 
+// ---- PAUSE / RESUME ----
+let _stateBeforePause = null;
+
+function pauseGame() {
+    if (gameState === 'paused' || gameState !== 'playing') return;
+    _stateBeforePause = gameState;
+    gameState = 'paused';
+    setInputMode('content');
+    gameEvents.emit('stateChange', { from: _stateBeforePause, to: 'paused', score, coins, lives });
+}
+
+function resumeGame() {
+    if (gameState !== 'paused') return;
+    gameState = _stateBeforePause || 'playing';
+    _stateBeforePause = null;
+    setInputMode('game');
+    gameEvents.emit('stateChange', { from: 'paused', to: gameState, score, coins, lives });
+}
+
+// ---- PAUSE OVERLAY ----
+function drawPauseOverlay() {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = COLORS.white;
+    ctx.font = 'bold 28px "Courier New", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+}
+
 // ---- WIN SCREEN ----
 function drawWinOverlay() {
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -1598,11 +1700,17 @@ function collideWithTiles(entity, w, h) {
                     if (getTile(tx, ty) === 3) {
                         levelData[ty][tx] = 8;
                         spawnCoinFromBlock(tx, ty);
+                        gameEvents.emit('blockHit', { type: 'question', tileX: tx, tileY: ty });
+                    } else if (getTile(tx, ty) === 10) {
+                        // Educational block - convert to used, emit event
+                        levelData[ty][tx] = 8;
+                        gameEvents.emit('educationalBlock', { tileX: tx, tileY: ty });
                     } else if (getTile(tx, ty) === 2) {
                         // Break brick
                         levelData[ty][tx] = 0;
                         spawnBrickParticles(tx * TILE, ty * TILE);
                         score += 50;
+                        gameEvents.emit('blockHit', { type: 'brick', tileX: tx, tileY: ty });
                     }
                 }
             }
@@ -1670,6 +1778,7 @@ function updatePlaying() {
 
         if (player.winTimer > 180) {
             gameState = 'win';
+            gameEvents.emit('stateChange', { from: 'playing', to: 'win', score, coins, lives });
         }
         return;
     }
@@ -1740,6 +1849,7 @@ function updatePlaying() {
                 x: player.x, y: player.y - 20,
                 text: '5000', life: 60
             });
+            gameEvents.emit('flagReached', { score, coins });
         }
 
         // Camera follow
@@ -1767,10 +1877,12 @@ function updatePlaying() {
             lives--;
             if (lives <= 0) {
                 gameState = 'gameover';
+                gameEvents.emit('stateChange', { from: 'dead', to: 'gameover', score, coins, lives });
             } else {
                 resetPlayer();
                 initEntities();
                 buildLevel();
+                gameEvents.emit('stateChange', { from: 'dead', to: 'playing', score, coins, lives });
             }
         }
     }
@@ -1807,6 +1919,7 @@ function updatePlaying() {
                     player.vy = -7;
                     score += 100;
                     scorePopups.push({ x: g.x, y: g.y - 10, text: '100', life: 30 });
+                    gameEvents.emit('enemyStomp', { enemy: 'goomba', x: g.x, y: g.y });
                 } else {
                     playerDie();
                 }
@@ -1845,6 +1958,7 @@ function updatePlaying() {
                         player.vy = -7;
                         score += 100;
                         scorePopups.push({ x: k.x, y: k.y - 10, text: '100', life: 30 });
+                        gameEvents.emit('enemyStomp', { enemy: 'koopa', x: k.x, y: k.y });
                     } else if (!k.shellMoving) {
                         k.shellMoving = true;
                         k.vx = player.x < k.x ? 6 : -6;
@@ -1911,6 +2025,7 @@ function playerDie() {
     player.deathTimer = 0;
     player.vx = 0;
     player.vy = 0;
+    gameEvents.emit('playerDeath', { lives: lives - 1, score, coins });
 }
 
 // ---- RENDER ----
@@ -2087,12 +2202,18 @@ function gameLoop(timestamp) {
                 initEntities();
                 keys['Enter'] = false;
                 keys['Space'] = false;
+                gameEvents.emit('stateChange', { from: 'title', to: 'playing', score, coins, lives });
             }
             break;
 
         case 'playing':
             updatePlaying();
             render();
+            break;
+
+        case 'paused':
+            render();
+            drawPauseOverlay();
             break;
 
         case 'dead':
@@ -2106,6 +2227,7 @@ function gameLoop(timestamp) {
             if (keys['Enter']) {
                 gameState = 'title';
                 keys['Enter'] = false;
+                gameEvents.emit('stateChange', { from: 'gameover', to: 'title', score, coins, lives });
             }
             break;
 
@@ -2118,6 +2240,7 @@ function gameLoop(timestamp) {
                 coins = 0;
                 lives = 3;
                 keys['Enter'] = false;
+                gameEvents.emit('stateChange', { from: 'win', to: 'title', score, coins, lives });
             }
             break;
     }
@@ -2192,6 +2315,146 @@ window.addEventListener('resize', () => {
         resizeMobileCanvas();
     }
 });
+
+// ---- DRILL BRIDGE (SAT Drill SDK integration) ----
+const drillBridge = {
+    overlay: null,
+    drillEl: null,
+    cooldownUntil: 0,
+    COOLDOWN_MS: 30000,
+    apiKey: '',
+    apiUrl: '',
+
+    init(apiKey, apiUrl) {
+        this.apiKey = apiKey;
+        this.apiUrl = apiUrl;
+        this.overlay = document.getElementById('drill-overlay');
+
+        // Game event → show drill
+        gameEvents.on('educationalBlock', (data) => this.onEducationalBlock(data));
+    },
+
+    createDrillElement() {
+        // Remove old element if present
+        const old = this.overlay.querySelector('sat-drill');
+        if (old) old.remove();
+
+        // Create fresh element so SDK starts from idle state
+        const el = document.createElement('sat-drill');
+        el.id = 'sat-drill-el';
+        el.setAttribute('api-key', this.apiKey);
+        el.setAttribute('api-url', this.apiUrl);
+        el.setAttribute('question-count', '1');
+        el.setAttribute('show-timer', 'false');
+        el.setAttribute('show-progress', 'false');
+        el.setAttribute('theme-mode', 'dark');
+
+        // Randomize domain for variety
+        const domains = ['Math', 'Reading and Writing'];
+        el.setAttribute('domain', domains[Math.floor(Math.random() * 2)]);
+
+        // Wire events
+        el.addEventListener('drill-completed', (e) => this.onDrillComplete(e));
+        el.addEventListener('drill-abandoned', () => this.onDrillDismiss());
+        el.addEventListener('drill-error', () => this.onDrillDismiss());
+        el.addEventListener('drill-close', () => this.onDrillDismiss());
+
+        this.overlay.appendChild(el);
+        this.drillEl = el;
+    },
+
+    onEducationalBlock(data) {
+        if (gameState !== 'playing' && gameState !== 'paused') return;
+        if (Date.now() < this.cooldownUntil) return;
+
+        pauseGame();
+        this.createDrillElement();
+        this.overlay.style.display = 'flex';
+    },
+
+    onDrillComplete(e) {
+        const detail = e.detail || {};
+        const accuracy = detail.accuracy ?? detail.score ?? 0;
+        const bonus = Math.round(accuracy * 500);
+        if (bonus > 0) {
+            score += bonus;
+            scorePopups.push({ x: player.x, y: player.y - 20, text: '+' + bonus, life: 40 });
+        }
+        this.cooldownUntil = Date.now() + this.COOLDOWN_MS;
+        parentBridge.notify('DRILL_COMPLETED', { accuracy, correct: detail.correct || 0, total: detail.total || 0, bonus });
+        this.dismiss();
+    },
+
+    onDrillDismiss() {
+        this.cooldownUntil = Date.now() + 15000;
+        parentBridge.notify('DRILL_DISMISSED', {});
+        this.dismiss();
+    },
+
+    dismiss() {
+        this.overlay.style.display = 'none';
+        // Remove drill element so next trigger gets a fresh instance
+        const el = this.overlay.querySelector('sat-drill');
+        if (el) el.remove();
+        this.drillEl = null;
+        resumeGame();
+    }
+};
+
+// Load API key from .env file
+fetch('../.env').then(r => r.ok ? r.text() : '').then(text => {
+    const env = {};
+    text.split('\n').forEach(line => {
+        const match = line.match(/^\s*([^#=]+?)\s*=\s*(.*?)\s*$/);
+        if (match) env[match[1]] = match[2];
+    });
+    drillBridge.init(env.DRILL_API_KEY || '', env.DRILL_API_URL || 'http://localhost:3000');
+}).catch(() => drillBridge.init('', 'http://localhost:3000'));
+
+// ---- PARENT BRIDGE (postMessage) ----
+const parentBridge = {
+    origin: window.location.origin,
+    init() {
+        window.addEventListener('message', (e) => {
+            if (e.origin !== this.origin) return;
+            this.handleMessage(e.data);
+        });
+        // Forward key game events to parent
+        gameEvents.on('educationalBlock', (data) => this.notify('EDUCATIONAL_BLOCK', data));
+        gameEvents.on('stateChange', (data) => this.notify('STATE_CHANGE', data));
+        gameEvents.on('flagReached', (data) => this.notify('FLAG_REACHED', data));
+        gameEvents.on('playerDeath', (data) => this.notify('PLAYER_DEATH', data));
+        gameEvents.on('blockHit', (data) => this.notify('BLOCK_HIT', data));
+        gameEvents.on('enemyStomp', (data) => this.notify('ENEMY_STOMP', data));
+    },
+    notify(type, payload) {
+        if (window.parent === window) return; // not in iframe
+        window.parent.postMessage({ source: 'mario-game', type, payload }, this.origin);
+    },
+    handleMessage(msg) {
+        if (!msg || !msg.type) return;
+        switch (msg.type) {
+            case 'PAUSE_GAME': pauseGame(); break;
+            case 'RESUME_GAME': resumeGame(); break;
+            case 'QUIZ_COMPLETED':
+                if (msg.payload && msg.payload.passed) {
+                    score += 500;
+                    scorePopups.push({ x: player.x, y: player.y - 20, text: '500', life: 40 });
+                }
+                resumeGame();
+                break;
+            case 'DRILL_CONFIG':
+                if (msg.payload && msg.payload.apiKey) {
+                    drillBridge.init(msg.payload.apiKey, msg.payload.apiUrl);
+                }
+                break;
+            case 'TRIGGER_DRILL':
+                drillBridge.onEducationalBlock({});
+                break;
+        }
+    }
+};
+parentBridge.init();
 
 // ---- START ----
 buildLevel();
