@@ -136,9 +136,108 @@
             backdrop-filter: blur(4px);
         }
         #drill-overlay sat-drill {
-            width: min(480px, 90vw);
-            max-height: 85vh;
+            width: 100%;
+            height: auto;
+            transform: none;
+            /* If the shadow dom brings its own background, let it flow. */
         }
+        
+        #drill-wrapper {
+            width: min(720px, 95vw);  /* Made popup wider/bigger */
+            max-height: 95vh;         /* Scroll wrapper if content extremely tall */
+            background: #1a1a2e;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.6);
+            /* Important: sat-drill shouldn't scroll internally if possible */
+        }
+
+        /* Responsive Mobile Overrides for SAT Drill & Touch Controls */
+        @media (max-width: 768px) {
+            #drill-wrapper {
+                width: 100vw;
+                height: 100vh;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+        }
+
+        /* Media Toolbar positioned as the popup Footer */
+        /* Media Toolbar positioned as the popup Footer */
+        #drill-toolbar {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            padding: 32px 0 24px 0; /* Huge top padding to shove the submit button up higher */
+            background: transparent;
+            border-top: none;
+            z-index: 100001;
+        }
+        .media-btn {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            min-height: 44px; /* Fat finger optimization */
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .media-btn:hover, .media-btn:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Video Modal */
+        #video-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 100005;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(6px);
+        }
+        .video-modal-content {
+            width: 90vw;
+            max-width: 700px;
+            background: #1a1a2e;
+            border-radius: 12px;
+            border: 1px solid #333;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .video-modal-header {
+            padding: 12px 16px;
+            background: #2d2d44;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+        }
+        #video-close-btn {
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            min-width: 44px;
+            min-height: 44px;
+        }
+        #solution-video-frame {
+            width: 100%;
+            aspect-ratio: 16/9;
+        }
+
 
         /* ---- FULLSCREEN ---- */
         #unity-container.fullscreen {
@@ -429,44 +528,44 @@
             75% { transform: rotate(0deg); }
         }
 
-        /* Mobile/tablet landscape touch controls - smaller & repositioned */
+        /* Mobile/tablet landscape touch controls - larger targets & avoid notches */
         body.device-mobile .dpad,
         body.device-tablet .dpad {
-            bottom: 12px !important;
-            left: 10px !important;
-            width: 110px !important;
-            height: 110px !important;
+            bottom: env(safe-area-inset-bottom, 20px) !important;
+            left: env(safe-area-inset-left, 16px) !important;
+            width: 140px !important;
+            height: 140px !important;
         }
         body.device-mobile .dpad-btn,
         body.device-tablet .dpad-btn {
-            width: 38px !important;
-            height: 38px !important;
-            font-size: 17px !important;
+            width: 48px !important;
+            height: 48px !important;
+            font-size: 22px !important;
             border-radius: 8px !important;
             background: rgba(255,255,255,0.12) !important;
             border: 1.5px solid rgba(255,255,255,0.25) !important;
         }
         body.device-mobile .dpad-up,
-        body.device-tablet .dpad-up { top: 0 !important; left: 36px !important; }
+        body.device-tablet .dpad-up { top: 0 !important; left: 46px !important; }
         body.device-mobile .dpad-down,
-        body.device-tablet .dpad-down { bottom: 0 !important; left: 36px !important; }
+        body.device-tablet .dpad-down { bottom: 0 !important; left: 46px !important; }
         body.device-mobile .dpad-left,
-        body.device-tablet .dpad-left { top: 36px !important; left: 0 !important; }
+        body.device-tablet .dpad-left { top: 46px !important; left: 0 !important; }
         body.device-mobile .dpad-right,
-        body.device-tablet .dpad-right { top: 36px !important; right: 0 !important; }
+        body.device-tablet .dpad-right { top: 46px !important; right: 0 !important; }
 
         body.device-mobile .action-buttons,
         body.device-tablet .action-buttons {
-            bottom: 12px !important;
-            right: 10px !important;
-            width: 120px !important;
-            height: 100px !important;
+            bottom: env(safe-area-inset-bottom, 20px) !important;
+            right: env(safe-area-inset-right, 24px) !important;
+            width: 140px !important;
+            height: 120px !important;
         }
         body.device-mobile .action-btn,
         body.device-tablet .action-btn {
-            width: 50px !important;
-            height: 50px !important;
-            font-size: 16px !important;
+            width: 58px !important;
+            height: 58px !important;
+            font-size: 18px !important;
         }
         body.device-mobile .btn-a,
         body.device-tablet .btn-a {
@@ -564,7 +663,26 @@
 
 <!-- SAT Drill SDK overlay -->
 <script type="module" src="vendor/sat-drill.js"></script>
-<div id="drill-overlay"></div>
+<div id="drill-overlay">
+    <div id="drill-wrapper">
+        <!-- sat-drill spans here -->
+        <div id="drill-toolbar">
+            <button id="drill-audio-btn" class="media-btn">&#128266; Listen</button>
+            <button id="drill-video-btn" class="media-btn">&#9654;&#65039; Solution</button>
+        </div>
+    </div>
+</div>
+
+<!-- Video Modal -->
+<div id="video-modal">
+    <div class="video-modal-content">
+        <div class="video-modal-header">
+            <h3>Video Solution</h3>
+            <button id="video-close-btn">&times;</button>
+        </div>
+        <iframe id="solution-video-frame" src="about:blank" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    </div>
+</div>
 
 <script>
 // ============================================================
@@ -580,7 +698,7 @@ const GRAVITY = 0.55;
 const MAX_FALL = 12;
 const WALK_SPEED = 3;
 const RUN_SPEED = 5.5;
-const JUMP_FORCE = -10.5;
+const JUMP_FORCE = -12.5;
 const FRICTION = 0.82;
 const ACCEL = 0.6;
 
@@ -998,6 +1116,7 @@ function resetPlayer() {
     player.y = 384 - 64;
     player.vx = 0;
     player.vy = 0;
+    player.dead = false;
     player.onGround = false;
     player.facing = 1;
     player.frame = 0;
@@ -1658,6 +1777,13 @@ function drawWinOverlay() {
 function collideWithTiles(entity, w, h) {
     let grounded = false;
 
+    const checkEdu = (tx, ty) => {
+        if (entity === player && getTile(tx, ty) === 10) {
+            levelData[ty][tx] = 8;
+            gameEvents.emit('educationalBlock', { tileX: tx, tileY: ty });
+        }
+    };
+
     // Horizontal
     entity.x += entity.vx;
     const left = Math.floor(entity.x / TILE);
@@ -1668,6 +1794,7 @@ function collideWithTiles(entity, w, h) {
     for (let ty = top; ty <= bottom; ty++) {
         for (let tx = left; tx <= right; tx++) {
             if (isSolid(getTile(tx, ty))) {
+                checkEdu(tx, ty);
                 if (entity.vx > 0) {
                     entity.x = tx * TILE - w;
                     entity.vx = typeof entity.bounceX !== 'undefined' ? -entity.vx : 0;
@@ -1689,6 +1816,7 @@ function collideWithTiles(entity, w, h) {
     for (let ty = top2; ty <= bottom2; ty++) {
         for (let tx = left2; tx <= right2; tx++) {
             if (isSolid(getTile(tx, ty))) {
+                checkEdu(tx, ty);
                 if (entity.vy > 0) {
                     entity.y = ty * TILE - h;
                     entity.vy = 0;
@@ -1701,10 +1829,6 @@ function collideWithTiles(entity, w, h) {
                         levelData[ty][tx] = 8;
                         spawnCoinFromBlock(tx, ty);
                         gameEvents.emit('blockHit', { type: 'question', tileX: tx, tileY: ty });
-                    } else if (getTile(tx, ty) === 10) {
-                        // Educational block - convert to used, emit event
-                        levelData[ty][tx] = 8;
-                        gameEvents.emit('educationalBlock', { tileX: tx, tileY: ty });
                     } else if (getTile(tx, ty) === 2) {
                         // Break brick
                         levelData[ty][tx] = 0;
@@ -1864,14 +1988,12 @@ function updatePlaying() {
     } else {
         // Dead animation
         player.deathTimer++;
-        if (player.deathTimer < 20) {
-            // Pause briefly
-        } else {
-            player.vy += GRAVITY * 0.7;
-            player.y += player.vy;
-        }
         if (player.deathTimer === 20) {
             player.vy = -8;
+        }
+        if (player.deathTimer >= 20) {
+            player.vy += GRAVITY * 0.7;
+            player.y += player.vy;
         }
         if (player.deathTimer > 120) {
             lives--;
@@ -1885,6 +2007,7 @@ function updatePlaying() {
                 gameEvents.emit('stateChange', { from: 'dead', to: 'playing', score, coins, lives });
             }
         }
+        return; // Freeze everything else while player is dying
     }
 
     // Update goombas
@@ -1912,7 +2035,7 @@ function updatePlaying() {
         if (!player.dead && g.alive && player.invincible <= 0) {
             if (rectsOverlap(player.x, player.y, player.width, player.height,
                              g.x, g.y, g.width, g.height)) {
-                if (player.vy > 0 && player.y + player.height - 8 < g.y + g.height / 2) {
+                if (player.vy > 0 && player.y + player.height - 16 <= g.y + g.height / 2) {
                     // Stomp
                     g.alive = false;
                     g.squishTimer = 20;
@@ -1951,7 +2074,7 @@ function updatePlaying() {
             const ky = k.shell ? k.y + 8 : k.y;
             if (rectsOverlap(player.x, player.y, player.width, player.height,
                              k.x, ky, k.width, kh)) {
-                if (player.vy > 0 && player.y + player.height - 8 < ky + kh / 2) {
+                if (player.vy > 0 && player.y + player.height - 16 <= ky + kh / 2) {
                     if (!k.shell) {
                         k.shell = true;
                         k.vx = 0;
@@ -2224,9 +2347,11 @@ function gameLoop(timestamp) {
         case 'gameover':
             frameCount++;
             drawGameOverScreen();
-            if (keys['Enter']) {
+            if (keys['Enter'] || keys['Space'] || keys['NumpadEnter']) {
                 gameState = 'title';
                 keys['Enter'] = false;
+                keys['Space'] = false;
+                keys['NumpadEnter'] = false;
                 gameEvents.emit('stateChange', { from: 'gameover', to: 'title', score, coins, lives });
             }
             break;
@@ -2309,10 +2434,16 @@ function resizeCanvas() {
 document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 window.addEventListener('resize', () => {
+    detectDevice();
     if (isFullscreen) resizeCanvas();
     if (isTouchDevice) {
         showMobileSplashOrGame();
         resizeMobileCanvas();
+    } else if (!isFullscreen) {
+        canvas.style.width = '';
+        canvas.style.height = '';
+        canvas.width = BASE_WIDTH;
+        canvas.height = BASE_HEIGHT;
     }
 });
 
@@ -2336,7 +2467,8 @@ const drillBridge = {
 
     createDrillElement() {
         // Remove old element if present
-        const old = this.overlay.querySelector('sat-drill');
+        const wrapper = document.getElementById('drill-wrapper');
+        const old = wrapper.querySelector('sat-drill');
         if (old) old.remove();
 
         // Create fresh element so SDK starts from idle state
@@ -2359,15 +2491,19 @@ const drillBridge = {
         el.addEventListener('drill-error', () => this.onDrillDismiss());
         el.addEventListener('drill-close', () => this.onDrillDismiss());
 
-        this.overlay.appendChild(el);
+        // Insert the popup above the media toolbar so they look like one unified container!
+        const toolbar = document.getElementById('drill-toolbar');
+        wrapper.insertBefore(el, toolbar);
+        
         this.drillEl = el;
     },
 
     onEducationalBlock(data) {
         if (gameState !== 'playing' && gameState !== 'paused') return;
-        if (Date.now() < this.cooldownUntil) return;
-
+        // Removed cooldown limits for rapid testing
+        
         pauseGame();
+        // Clear all active keys to prevent Mario from auto-jumping/moving after resume
         this.createDrillElement();
         this.overlay.style.display = 'flex';
     },
@@ -2375,41 +2511,105 @@ const drillBridge = {
     onDrillComplete(e) {
         const detail = e.detail || {};
         const accuracy = detail.accuracy ?? detail.score ?? 0;
+        
+        let correct = detail.correct;
+        let total = detail.total;
+        if (correct === undefined || total === undefined) {
+            if (detail.results && detail.results.length > 0) {
+                total = detail.results.length;
+                correct = detail.results.filter(r => r.isCorrect).length;
+            } else {
+                total = 1;
+                correct = accuracy > 0 ? 1 : 0;
+            }
+        }
+        
         const bonus = Math.round(accuracy * 500);
         if (bonus > 0) {
             score += bonus;
             scorePopups.push({ x: player.x, y: player.y - 20, text: '+' + bonus, life: 40 });
         }
-        this.cooldownUntil = Date.now() + this.COOLDOWN_MS;
-        parentBridge.notify('DRILL_COMPLETED', { accuracy, correct: detail.correct || 0, total: detail.total || 0, bonus });
+        
+        parentBridge.notify('DRILL_COMPLETED', { accuracy, correct, total, bonus });
         this.dismiss();
     },
 
     onDrillDismiss() {
-        this.cooldownUntil = Date.now() + 15000;
         parentBridge.notify('DRILL_DISMISSED', {});
         this.dismiss();
     },
 
     dismiss() {
         this.overlay.style.display = 'none';
-        // Remove drill element so next trigger gets a fresh instance
-        const el = this.overlay.querySelector('sat-drill');
+        // Remove drill element so next trigger gets a fresh instance (but keep toolbar)
+        const wrapper = document.getElementById('drill-wrapper');
+        const el = wrapper.querySelector('sat-drill');
         if (el) el.remove();
         this.drillEl = null;
+
+        // Stop any active speech
+        window.speechSynthesis.cancel();
+        
+        // Prevent stuck keys from input polling
+        for (let k in keys) keys[k] = false;
+        
         resumeGame();
     }
 };
 
+// ---- MEDIA MEDIA HOOKS ----
+document.getElementById('drill-audio-btn').addEventListener('click', () => {
+    const drill = document.querySelector('sat-drill');
+    if (!drill || !drill.shadowRoot) return;
+    
+    // Safely attempt to query the DOM inside the WebComponent
+    const qTextEl = drill.shadowRoot.querySelector('.question-text');
+    if (!qTextEl) return;
+    
+    const text = qTextEl.textContent.trim();
+    if (!text) return;
+
+    // Interrupt any ongoing speech
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.95; // Slightly slower feels more educational
+    utterance.pitch = 1.0;
+    
+    window.speechSynthesis.speak(utterance);
+});
+
+document.getElementById('drill-video-btn').addEventListener('click', () => {
+    const modal = document.getElementById('video-modal');
+    const iframe = document.getElementById('solution-video-frame');
+    
+    // Placeholder educational video (free use / common youtube tutorial format)
+    iframe.src = "https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0";
+    modal.style.display = 'flex';
+});
+
+document.getElementById('video-close-btn').addEventListener('click', () => {
+    const modal = document.getElementById('video-modal');
+    const iframe = document.getElementById('solution-video-frame');
+    
+    // Stop playback by clearing the src
+    iframe.src = "about:blank";
+    modal.style.display = 'none';
+});
+
 // Load API key from .env file
-fetch('../.env').then(r => r.ok ? r.text() : '').then(text => {
+fetch('../.env?v=' + Date.now()).then(r => r.ok ? r.text() : '').then(text => {
     const env = {};
     text.split('\n').forEach(line => {
         const match = line.match(/^\s*([^#=]+?)\s*=\s*(.*?)\s*$/);
         if (match) env[match[1]] = match[2];
     });
-    drillBridge.init(env.DRILL_API_KEY || '', env.DRILL_API_URL || 'http://localhost:3000');
-}).catch(() => drillBridge.init('', 'http://localhost:3000'));
+    console.log("Parsed ENV:", env);
+    // FORCE hardcoded local proxy url!
+    drillBridge.init(env.DRILL_API_KEY || '', 'http://localhost:8081');
+}).catch(() => {
+    console.error("Failed to fetch .env");
+    drillBridge.init('', 'http://localhost:8081');
+});
 
 // ---- PARENT BRIDGE (postMessage) ----
 const parentBridge = {
